@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Wikelo Ressourcen-Planer  ->  SC_Wikelo_Planer.html  (eine eigenstaendige Datei)
 
@@ -20,7 +19,15 @@ Bedienung der fertigen App:
 
 Start:  py "wikelo_planer_bauen.py"   (oder Wikelo_Planer_aktualisieren.bat)
 """
-import http.client, json, os, re, ssl, time, datetime, pathlib, sys, urllib.request
+import datetime
+import http.client
+import json
+import pathlib
+import re
+import ssl
+import sys
+import time
+import urllib.request
 
 HOST     = "seeknd.github.io"
 BASEPATH = "/Wikelo/"
