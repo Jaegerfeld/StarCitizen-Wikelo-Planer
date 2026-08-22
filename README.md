@@ -1,75 +1,69 @@
 # StarCitizen-Wikelo-Planer
 
-**Version 1.0.0**
+**Version 1.1.0** · 🇬🇧 English · [🇩🇪 Deutsch](README.de.md)
 
-Ein Ressourcen-Planer für **Wikelo's Emporium** in *Star Citizen*: Du trägst deinen
-Ressourcen-Bestand ein und siehst sofort, **welche Wikelo-Angebote du bekommst** –
-zuoberst die sofort verfügbaren, darunter nach **Beschaffungsaufwand gestaffelt**.
+A resource planner for **Wikelo's Emporium** in *Star Citizen*: enter your resource stock and
+instantly see **which Wikelo rewards you can get** — the ones available right now on top, the
+rest **ranked by how much effort** the missing ingredients take.
 
-> *A resource planner for Wikelo's Emporium in Star Citizen. Enter your stock and instantly
-> see which Wikelo rewards you can get — available first, then ranked by how much effort the
-> missing ingredients take. Single self-contained HTML file, offline, no install.*
+**▶ Use online:** https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/
+**▶ Use offline:** download [`SC_Wikelo_Planer.html`](SC_Wikelo_Planer.html) and open it (double-click).
 
-**▶ Online nutzen:** https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/
-**▶ Offline nutzen:** [`SC_Wikelo_Planer.html`](SC_Wikelo_Planer.html) herunterladen und per Doppelklick öffnen.
+The whole app is **one self-contained HTML file** — offline, no install, no server. The interface
+is **bilingual (English/German)**, switchable in the header.
 
-![Übersicht](docs/screenshots/planer_uebersicht.png)
+![Overview](docs/screenshots/planer_uebersicht.png)
 
 ---
 
-## Was es kann
+## Features
 
-- **Bestand eintragen** – links alle Zutaten, gruppiert nach Beschaffungsquelle
-  (Währung / Mining / Creature-Loot / Contested Zone / craftbar …).
-  Menge per **+/−**, **Mausrad**, **Rechtsklick** oder **Modifier-Klick**
-  (Klick +1 · Shift +10 · Strg +50 · Alt +100).
-- **Schnell-Eingabe** – Kommando-Leiste: `carinite 50` setzt, `name +10` addiert,
-  mit Autovervollständigung und Tastatur-Auswahl.
-- **Angebote gestaffelt nach Aufwand** – *Sofort verfügbar → 1 Zutat fehlt → 2 fehlen → 3+*.
-  Wahlweise gruppiert nach Artikelgruppe (Schiff / Fahrzeug / Waffe / Rüstung / …).
-- **Aufwand-Sterne (1–5)** – mengengewichtet: Summe aus *fehlender Menge × Beschaffungskosten
-  je Quelle*, log-gestaucht. „Wikelo Arrive" ≈ 1★, eine Idris ≈ 5★.
-- **Fehlendes beschaffen** – je Angebot ausklappbar: Bauplan-Rezepte für craftbare Zutaten,
-  Wikelo-Favor-/Währungs-Umrechnung, Erz-Preis-/Kaufort-Hinweise.
-- **Reputations-Filter** und Ausblenden zurückgezogener Angebote.
-- **Bestand speichern/laden** als `SC_Wikelo_Bestand.json` (plus automatisches
-  Merken im Browser). Die Bestandsdatei wird beim Neubau automatisch vorgeladen.
+- **Enter your stock** — all ingredients on the left, grouped by sourcing (currency / mining /
+  creature loot / contested zone / craftable …). Set amounts via **+/−**, **mouse wheel**,
+  **right-click**, or **modifier click** (click +1 · Shift +10 · Ctrl +50 · Alt +100).
+- **Quick entry** — command bar: `carinite 50` sets, `name +10` adds, with autocomplete.
+- **Offers ranked by effort** — *Available now → 1 missing → 2 missing → 3+*. Or group by category.
+- **Effort stars (1–5)** — amount-weighted: sum of *missing amount × sourcing cost per source*,
+  log-scaled. "Wikelo Arrive" ≈ 1★, an Idris ≈ 5★.
+- **"Get missing"** per offer — blueprint recipes for craftable ingredients, Wikelo Favor exchange
+  paths, ore price hints.
+- **Refresh data in-app** — reload offers (seeknd), blueprints (star-head) and ore prices (UEX)
+  live in the browser; cached locally, offline build stays as fallback.
+- **Reputation filter**, hide retired offers, **save/load stock** as `SC_Wikelo_Bestand.json`.
 
-## Selbst neu bauen / aktualisieren
+## Rebuild / update the bundled data
 
-Die App bündelt die Daten beim Erzeugen ein. Zum Aktualisieren:
-
-- **Windows:** [`Wikelo_Planer_aktualisieren.bat`](Wikelo_Planer_aktualisieren.bat) doppelklicken
+- **Windows:** double-click [`Wikelo_Planer_aktualisieren.bat`](Wikelo_Planer_aktualisieren.bat)
 - **Linux/macOS:** `./Wikelo_Planer_aktualisieren.sh`
-- **direkt:** `python wikelo_planer_bauen.py`
+- **direct:** `python wikelo_planer_bauen.py`
 
-Voraussetzung: **Python 3.9+** – **keine** externen Pakete (nur Standardbibliothek).
-Erzeugt `SC_Wikelo_Planer.html` im selben Ordner.
+Requires **Python 3.9+**, **no external packages** (standard library only). Produces
+`SC_Wikelo_Planer.html` in the same folder. You can also just hit **Refresh data** inside the app.
 
-## Datenquellen & Credits
+## Data sources & credits
 
-- **Wikelo-Angebote:** community-gepflegte Datenbank *Wikelo's Emporium Reference*
+- **Wikelo offers:** community database *Wikelo's Emporium Reference*
   ([seeknd.github.io/Wikelo](https://seeknd.github.io/Wikelo/))
-- **Bauplan-Rezepte & Erz-Preise:** [star-head.de](https://star-head.de) (offene API)
+- **Blueprint recipes:** [star-head.de](https://star-head.de) (open API)
+- **Ore prices:** [UEX](https://uexcorp.space) (open API)
 
-Die Daten sind patch-abhängig und rotieren – im Zweifel im Spiel gegenprüfen.
+Data is patch-dependent and rotates — verify in-game when in doubt.
 
-## Experimentell
+## Experimental
 
-[`experimental/ocr/`](experimental/ocr/) – Vorarbeit, um den Inventar-Bestand automatisch
-per OCR zu lesen. Derzeit zurückgestellt, weil das SC-Inventar nur Icons ohne Namen zeigt –
-Details und Begründung im dortigen README.
+[`experimental/ocr/`](experimental/ocr/) — groundwork for reading the inventory automatically via
+OCR. Currently on hold because the SC inventory shows icons without names; details there.
 
-## Haftung
+## Disclaimer
 
-Inoffizielles Fan-Tool. Nicht mit der Cloud Imperium Games Corporation verbunden oder von ihr
-unterstützt. Star Citizen® ist eine Marke von CIG. Alle Angaben ohne Gewähr.
+Unofficial fan tool. Not affiliated with or endorsed by the Cloud Imperium Games Corporation.
+Star Citizen® is a trademark of CIG. All data provided without warranty.
 
-## KI-Hinweis
+## AI note
 
-> Dieses Projekt entstand als Erkundung KI-gestützter Softwareentwicklung.
-> Der Code wurde weit überwiegend mit [Claude Code](https://claude.com/claude-code) (Anthropic) erstellt.
+> This project was created as an exploration of AI-driven software development.
+> The code is overwhelmingly written with [Claude Code](https://claude.com/claude-code) (Anthropic).
 
-## Lizenz
+## License
 
 [BSD-3-Clause](LICENSE) · © 2026 Robert Seebauer

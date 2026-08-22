@@ -4,6 +4,22 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.1.0] – 2026-08-22
+
+### Hinzugefügt
+- **In-App-Datenaktualisierung:** Button „Daten aktualisieren" lädt Angebote (seeknd),
+  Baupläne (star-head) und Erz-Preise (UEX) live im Browser nach – ohne Neu-Build.
+  Ergebnis wird schema-versioniert in `localStorage` gecacht (getrennt vom Bestand);
+  non-fatal (bei Fehler bleiben die bestehenden Daten). Rechtsklick = auf Build-Daten
+  zurücksetzen. Preisquelle wählbar (beide / UEX / star-head).
+- **Zweisprachige Oberfläche (DE/EN)** mit Umschalter im Header; Kategorien, Quellen und
+  Status als stabile Keys, Labels nur beim Rendern lokalisiert.
+- **Erz-Preise via UEX** (füllt die star-head-Lücke) mit Plausibilitäts-Filter.
+
+### Geändert
+- Aufbereitungslogik lebt jetzt einmalig im Browser (`transform()`); der Generator
+  bündelt nur noch Rohdaten. Golden-Diff bestätigt identische Ausgabe zur Vorversion.
+
 ## [1.0.0] – 2026-08-22
 
 ### Hinzugefügt
@@ -29,4 +45,5 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - `experimental/ocr/` – Windows-OCR-Vorarbeit zum Auslesen des Inventars.
   Derzeit blockiert, weil das SC-Inventar nur Icons ohne Namen zeigt (siehe README dort).
 
+[1.1.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.0.0
