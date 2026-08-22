@@ -1,0 +1,32 @@
+# Changelog
+
+Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
+Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
+Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
+
+## [1.0.0] – 2026-08-22
+
+### Hinzugefügt
+- Erste öffentliche Version des **StarCitizen-Wikelo-Planers**.
+- Eigenständige Offline-GUI (`SC_Wikelo_Planer.html`) – eine Datei, kein Server, keine Installation.
+- Ressourcen-Bestand anklickbar; Menge per +/−-Knopf, Mausrad, Rechtsklick sowie
+  Modifier-Schritten (Klick +1 · Shift +10 · Strg +50 · Alt +100).
+- **Schnell-Eingabe** (Kommando-Leiste): z. B. `carinite 50` setzt, `name +10` addiert,
+  mit Autovervollständigung und Tastatur-Auswahl.
+- Wikelo-Angebote **gestaffelt nach Aufwand** (Sofort / 1 fehlt / 2 fehlen / 3+ fehlen),
+  wahlweise gruppiert nach Artikelgruppe.
+- **Mengengewichtete Aufwand-Sterne** (1–5): Summe aus fehlender Menge × Beschaffungskosten
+  je Quelle, log-gestaucht (kalibriert: „Wikelo Arrive" ≈ 1★, Idris ≈ 5★).
+- Detailansicht „Fehlendes beschaffen" je Angebot: Bauplan-Rezepte für craftbare Zutaten,
+  Wikelo-Favor-/Währungs-Umrechnung, Erz-Preis-/Kaufort-Hinweise.
+- Reputations-Filter und Ausblenden zurückgezogener Angebote.
+- Bestand-Persistenz: Browser-`localStorage` + **Speichern/Laden als `SC_Wikelo_Bestand.json`**;
+  vorhandene Bestandsdatei wird beim Neubau automatisch vorgeladen.
+- Generator `wikelo_planer_bauen.py` zieht Angebote (community-Wikelo-DB) und
+  Bauplan-Rezepte (star-head.de) und backt sie in die HTML.
+
+### Experimentell
+- `experimental/ocr/` – Windows-OCR-Vorarbeit zum Auslesen des Inventars.
+  Derzeit blockiert, weil das SC-Inventar nur Icons ohne Namen zeigt (siehe README dort).
+
+[1.0.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.0.0

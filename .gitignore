@@ -1,0 +1,24 @@
+# Persönlicher Bestand (nicht ins Repo)
+SC_Wikelo_Bestand.json
+
+# OCR-Zwischendateien
+SC_Wikelo_OCR_words.json
+experimental/ocr/*.png
+experimental/ocr/SC_Wikelo_OCR_words.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# OS / Editor
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/
+
+# Star-Citizen-Logs / lokale Screenshots
+*.log
+inventar*.png

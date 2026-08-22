@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SC Wikelo Ressourcen-Planer</title>
+<style>
+:root{
+  --navy:#0b3d5c; --navy2:#0e4d73; --ink:#0b1620; --panel:#132635; --panel2:#0f1e2b;
+  --line:#26445c; --txt:#e7eef4; --dim:#9db4c6; --gold:#ffcf5c; --gold2:#f6b93b;
+  --ok:#37c98a; --okbg:#123a2d; --miss:#ff7a7a; --missbg:#3a1c1f; --chip:#1c384c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--txt);
+  font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:14px}
+a{color:var(--gold)}
+header{background:linear-gradient(180deg,var(--navy),var(--navy2));padding:10px 16px;
+  border-bottom:2px solid var(--gold2);position:sticky;top:0;z-index:20}
+.hrow{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+h1{font-size:18px;margin:0;letter-spacing:.3px}
+h1 .sub{color:var(--gold);font-weight:600}
+.meta{color:var(--dim);font-size:12px}
+.controls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:8px}
+.controls label{font-size:12.5px;color:var(--dim);display:flex;gap:6px;align-items:center}
+input[type=text],input[type=number]{background:var(--panel2);border:1px solid var(--line);
+  color:var(--txt);border-radius:6px;padding:6px 8px;font-size:13px}
+input[type=number]{width:64px}
+.btn{background:var(--chip);border:1px solid var(--line);color:var(--txt);border-radius:6px;
+  padding:6px 10px;font-size:12.5px;cursor:pointer}
+.btn:hover{border-color:var(--gold2)}
+.btn.prim{background:var(--gold2);color:#221a00;font-weight:700;border-color:var(--gold2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{background:var(--panel2);border:0;color:var(--dim);padding:6px 10px;cursor:pointer;font-size:12.5px}
+.seg button.on{background:var(--gold2);color:#221a00;font-weight:700}
+main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.panel > .ph{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;
+  justify-content:space-between;align-items:center;gap:8px}
+.ph b{font-size:13px}
+.side{position:sticky;top:96px;max-height:calc(100vh - 112px);display:flex;flex-direction:column}
+.side .scroll{overflow:auto;padding:6px 6px 10px}
+.grp{margin:6px 4px 2px;color:var(--gold);font-size:11.5px;text-transform:uppercase;
+  letter-spacing:.5px;padding:6px 8px 2px;border-top:1px solid var(--line)}
+.grp:first-child{border-top:0}
+.res{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;cursor:pointer;
+  user-select:none}
+.res:hover{background:#17303f}
+.res.have{background:var(--okbg)}
+.res .nm{flex:1;line-height:1.15}
+.res .nm small{color:var(--dim);display:block;font-size:10.5px}
+.res.have .nm{color:#c9f6e2}
+.qbox{display:flex;align-items:center;gap:3px}
+.qbtn{width:22px;height:22px;border-radius:5px;border:1px solid var(--line);background:var(--panel2);
+  color:var(--txt);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center}
+.qbtn:hover{border-color:var(--gold2)}
+.qval{min-width:26px;text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
+.qval.z{color:var(--dim);font-weight:400}
+.qadd{position:relative;padding:8px 8px 2px}
+#quickAdd{width:100%;border-color:var(--gold2)}
+.qhint{padding:0 12px;color:#7d95a8;font-size:10.5px}
+.qsug{position:absolute;left:8px;right:8px;top:calc(100% - 2px);z-index:18;background:var(--panel2);
+  border:1px solid var(--gold2);border-top:0;border-radius:0 0 8px 8px;max-height:280px;overflow:auto;display:none;
+  box-shadow:0 10px 24px rgba(0,0,0,.4)}
+.qsug.open{display:block}
+.qsug .s{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;cursor:pointer;font-size:12.5px}
+.qsug .s:hover,.qsug .s.act{background:#17303f}
+.qsug .s .src2{color:var(--gold);font-size:9.5px;text-transform:uppercase}
+.qsug .s .sq{color:var(--ok);font-variant-numeric:tabular-nums;font-weight:700}
+.qsug .s small{color:var(--dim)}
+.band{margin:0 0 14px}
+.band > .bh{display:flex;align-items:center;gap:10px;margin:2px 2px 8px;padding:6px 4px;
+  border-bottom:1px solid var(--line)}
+.band > .bh .dot{width:11px;height:11px;border-radius:50%}
+.band > .bh b{font-size:14px}
+.band > .bh .cnt{color:var(--dim);font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 11px;
+  border-left:4px solid var(--line)}
+.card.b0{border-left-color:var(--ok)}
+.card.b1{border-left-color:var(--gold2)}
+.card.b2{border-left-color:#e69138}
+.card.b3{border-left-color:#c0392b}
+.card.locked{opacity:.62}
+.card h3{margin:0 0 3px;font-size:14px;line-height:1.2}
+.card .cat{display:inline-block;font-size:10.5px;color:var(--dim);border:1px solid var(--line);
+  border-radius:20px;padding:1px 8px;margin-bottom:6px}
+.card .mission{color:var(--dim);font-size:11.5px;margin:0 0 7px;font-style:italic}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:11.5px;border-radius:6px;padding:3px 7px;border:1px solid var(--line);
+  background:var(--chip);display:flex;gap:5px;align-items:center;cursor:default}
+.chip.ok{background:var(--okbg);border-color:#2b6b52;color:#bff3dd}
+.chip.miss{background:var(--missbg);border-color:#6b2f34;color:#ffd0d0;cursor:pointer}
+.chip .q{font-weight:700;font-variant-numeric:tabular-nums}
+.chip .cr{color:var(--gold);font-size:10px}
+.card .foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;
+  color:var(--dim);font-size:11px;gap:8px}
+.effort{display:flex;align-items:center;gap:4px;color:var(--dim);font-size:10.5px}
+.edot{width:7px;height:7px;border-radius:50%;background:#2f4a5e;display:inline-block}
+.edot.on{background:var(--gold2)}
+.badge{border-radius:5px;padding:1px 6px;font-size:10.5px;border:1px solid var(--line)}
+.badge.rep{color:var(--gold)}
+.badge.lock{background:#3a1c1f;border-color:#6b2f34;color:#ffd0d0}
+.badge.ret{background:#2a2333;border-color:#4a3d5c;color:#c9b6e6}
+.det{margin-top:7px;border-top:1px dashed var(--line);padding-top:7px;display:none}
+.det.open{display:block}
+.det .row{margin:4px 0;font-size:11.5px;line-height:1.35}
+.det .row b{color:var(--txt)}
+.det .src{color:var(--gold);font-size:10px;text-transform:uppercase;letter-spacing:.4px}
+.det .sub{color:var(--dim)}
+.det .opt{display:inline-block;background:var(--chip);border:1px solid var(--line);border-radius:5px;
+  padding:1px 6px;margin:2px 4px 0 0;font-size:11px}
+.tog{cursor:pointer;color:var(--gold)}
+.empty{color:var(--dim);padding:18px;text-align:center}
+.legend{display:flex;flex-wrap:wrap;gap:10px;color:var(--dim);font-size:11px;margin-top:6px;align-items:center}
+.legend span{display:flex;gap:5px;align-items:center}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy2);
+  border:1px solid var(--gold2);color:var(--txt);padding:9px 16px;border-radius:8px;z-index:50;
+  opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+/* Responsive-Overrides ganz am Ende, damit sie die Basis-Regeln ueberschreiben */
+@media(max-width:900px){
+  main{grid-template-columns:1fr}
+  .side{position:static;max-height:none}
+  .side .scroll{max-height:52vh}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1>SC <span class="sub">Wikelo</span> Ressourcen-Planer</h1>
+    <span class="meta" id="meta"></span>
+  </div>
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="aufwand" class="on">Nach Aufwand</button>
+      <button data-mode="gruppe">Nach Artikelgruppe</button>
+    </div>
+    <label>Mein Wikelo-Ruf:
+      <input type="number" id="myRep" min="0" step="5" value="0" style="width:72px">
+    </label>
+    <label><input type="checkbox" id="onlyRep"> nur erfüllbarer Ruf</label>
+    <label><input type="checkbox" id="showRetired"> zurückgezogene zeigen</label>
+    <input type="text" id="offerSearch" placeholder="Angebote filtern…" style="min-width:150px">
+    <button class="btn prim" id="btnSave">💾 Bestand speichern</button>
+    <button class="btn" id="btnLoad">📂 Bestand laden</button>
+    <button class="btn" id="btnReset">leeren</button>
+    <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+  </div>
+</header>
+
+<main>
+  <aside class="panel side">
+    <div class="ph">
+      <b>Mein Ressourcen-Bestand</b>
+      <span class="meta" id="haveCount"></span>
+    </div>
+    <div class="qadd">
+      <input type="text" id="quickAdd" autocomplete="off" placeholder='⚡ Schnell-Eingabe: z. B. „carinite 50" · Enter'>
+      <div class="qsug" id="quickSug"></div>
+    </div>
+    <div class="qhint">„name zahl" setzt · „name +zahl" addiert · nur „name" = +1 · ↑↓ wählen, Enter übernehmen</div>
+    <div style="padding:8px 8px 0"><input type="text" id="resSearch" placeholder="Ressource suchen…" style="width:100%"></div>
+    <div style="padding:5px 12px 0;color:var(--dim);font-size:11px;line-height:1.4">
+      Menge: Klick <b>+1</b> · Shift <b>+10</b> · Strg <b>+50</b> · Alt <b>+100</b>
+      <span style="color:#7d95a8">(Mausrad = hoch/runter, Rechtsklick = minus, gleiche Modifier)</span>
+    </div>
+    <label style="padding:6px 12px;color:var(--dim);font-size:12px;display:flex;gap:6px;align-items:center">
+      <input type="checkbox" id="onlyHave"> nur „hab ich" zeigen
+    </label>
+    <div class="scroll" id="resList"></div>
+  </aside>
+
+  <section>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--ok)"></i> sofort</span>
+      <span><i class="sw" style="background:var(--gold2)"></i> 1 fehlt</span>
+      <span><i class="sw" style="background:#e69138"></i> 2 fehlen</span>
+      <span><i class="sw" style="background:#c0392b"></i> 3+ fehlen</span>
+      <span>· Aufwand <i class="edot on"></i><i class="edot on"></i><i class="edot"></i> = Gesamtaufwand des Fehlenden (Menge × Beschaffung)</span>
+      <span style="margin-left:auto">Menge links: Klick +1 · Shift +10 · Strg +50 · Alt +100 (Mausrad/Rechtsklick ebenso)</span>
+    </div>
+    <div id="offers" style="margin-top:12px"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script id="wikelo-data" type="application/json">{"meta":{"version":"1.0.0","patch":"4.9","data_updated":"2026-07-17","generated":"2026-08-22","n_offers":83,"n_ingredients":115},"offers":[{"id":"ship_039","reward":"Aegis Idris-P Wikelo War Special","art":"Schiff","mission":"Special Idris For Killing","recipe":[{"name":"Wikelo Favor","qty":50},{"name":"Polaris Bit","qty":50},{"name":"DCHS-05 Orbital Positioning Comp-Board","qty":50},{"name":"Carinite","qty":50},{"name":"Irradiated Valakkar Fang (Apex)","qty":50},{"name":"MG Scrip","qty":50},{"name":"Ace Interceptor Helmet","qty":50},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":30},{"name":"UEE 6th Platoon Medal (Pristine)","qty":30},{"name":"Carinite (Pure)","qty":30},{"name":"ASD Secure Drive","qty":30},{"name":"RCMBNT-PWL-1","qty":5},{"name":"RCMBNT-PWL-2","qty":5},{"name":"RCMBNT-PWL-3","qty":5},{"name":"RCMBNT-RGL-1","qty":5},{"name":"RCMBNT-RGL-2","qty":5},{"name":"RCMBNT-RGL-3","qty":5},{"name":"RCMBNT-XTL-1","qty":5},{"name":"RCMBNT-XTL-2","qty":5},{"name":"RCMBNT-XTL-3","qty":5}],"rep_req":999,"rep_rew":0,"status":"active","status_de":"aktiv"},{"id":"ship_007","reward":"Aegis Sabre Firebird Wikelo War Special","art":"Schiff","mission":"Firebird Mod","recipe":[{"name":"Wikelo Favor","qty":15},{"name":"DCHS-05 Orbital Positioning Comp-Board","qty":4},{"name":"Ace Interceptor Helmet","qty":3},{"name":"Government Cartography Agency Medal (Pristine)","qty":1}],"rep_req":0,"rep_rew":100,"status":"active","status_de":"aktiv"},{"id":"ship_012","reward":"Aegis Sabre Peregrine Wikelo Speedy Special","art":"Schiff","mission":"Peregrine Wikelo Mod","recipe":[{"name":"Wikelo Favor","qty":4},{"name":"DCHS-05 Orbital Positioning Comp-Board","qty":1}],"rep_req":0,"rep_rew":30,"status":"active","status_de":"aktiv"},{"id":"ship_038","reward":"Antium Helmet Midnight Sun; Antium Core Midnight Sun; Antium Arms Midnight Sun; Antium Legs Midnight Sun; Fresnel \"Deepwater\" Energy LMG; Kruger L-21 Wolf Wikelo War Special","art":"Schiff","mission":"Most Special Wolf","recipe":[{"name":"Wikelo Favor","qty":5}],"rep_req":340,"rep_rew":0,"status":"active","status_de":"aktiv"},{"id":"ship_036","reward":"Anvil Asgard Wikelo War Special","art":"Schiff","mission":"Asgard Fight Mod","recipe":[{"name":"Wikelo Favor","qty":50},{"name":"RCMBNT-PWL-1","qty":5},{"name":"RCMBNT-PWL-2","qty":5},{"name":"RCMBNT-PWL-3","qty":5},{"name":"RCMBNT-RGL-1","qty":5},{"name":"RCMBNT-RGL-2","qty":5},{"name":"RCMBNT-RGL-3","qty":5},{"name":"RCMBNT-XTL-1","qty":5},{"name":"RCMBNT-XTL-2","qty":5},{"name":"RCMBNT-XTL-3","qty":5},{"name":"ASD Secure Drive","qty":3}],"rep_req":0,"rep_rew":250,"status":"active","status_de":"aktiv"},{"id":"ship_009","reward":"Anvil F7 Hornet Mk Wikelo","art":"Schiff","mission":"Wikelo Navy F7","recipe":[{"name":"Wikelo Favor","qty":16},{"name":"DCHS-05 Orbital Positioning Comp-Board","qty":3},{"name":"Ace Interceptor Helmet","qty":5},{"name":"Government Cartography Agency Medal (Pristine)","qty":1}],"rep_req":0,"rep_rew":100,"status":"active","status_de":"aktiv"},{"id":"ship_015","reward":"Anvil F8C Lightning Wikelo Sneak Special","art":"Schiff","mission":"Sneaky Stabber","recipe":[{"name":"Wikelo Favor","qty":40},{"name":"DCHS-05 Orbital Positioning Comp-Board","qty":15},{"name":"Carinite (Pure)","qty":3},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":3}],"rep_req":0,"rep_rew":250,"status":"active","status_de":"aktiv"},{"id":"ship_014","reward":"Anvil F8C Lightning Wikelo War Special","art":"Schiff","mission":"F8 War Mod","recipe":[{"name":"Wikelo Favor","qty":40},{"name":"Carinite (Pure)","qty":4},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":4},{"name":"Tevarin War Service Marker (Pristine)","qty":4}],"rep_req":0,"rep_rew":250,"status":"active","status_de":"aktiv"},{"id":"ship_024","reward":"Anvil Terrapin Medic Wikelo Savior Special","art":"Schiff","mission":"What is Terrapin?","recipe":[{"name":"Wikelo Favor","qty":15},{"name":"ASD Secure Drive","qty":10},{"name":"Tevarin War Service Marker (Pristine)","qty":1}],"rep_req":0,"rep_rew":100,"status":"active","status_de":"aktiv"},{"id":"ship_002","reward":"Aopoa Nox Wikelo Special","art":"Schiff","mission":"Noxy Mod","recipe":[{"name":"Wikelo Favor","qty":4}],"rep_req":0,"rep_rew":20,"status":"active","status_de":"aktiv"},{"id":"ship_035","reward":"Argo RAFT Wikelo Work Special","art":"Schiff","mission":"Ready for RAFT?","recipe":[{"name":"Wikelo Favor","qty":8},{"name":"Irradiated Valakkar Fang (Adult)","qty":10},{"name":"Irradiated Valakkar Fang (Juvenile)","qty":20},{"name":"Irradiated Kopion Horn","qty":5},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":1}],"rep_req":0,"rep_rew":30,"status":"active","status_de":"aktiv"},{"id":"ship_027","reward":"Crusader A2 Hercules Starlifter Wikelo War Special","art":"Schiff","mission":"Starlifter A2 War Mod","recipe":[{"name":"Wikelo Favor","qty":50},{"name":"Polaris Bit","qty":20},{"name":"MG Scrip","qty":20},{"name":"ASD Secure Drive","qty":6},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":6},{"name":"Tevarin War Service Marker (Pristine)","qty":6},{"name":"DCHS-05 Orbital Positioning Comp-Board","qty":6},{"name":"Carinite (Pure)","qty":6}],"rep_req":0,"rep_rew":500,"status":"active","status_de":"aktiv"},{"id":"ship_029","reward":"Crusader Ares Star Fighter Inferno Wikelo War Special","art":"Schiff","mission":"Starfighter Inferno Special","recipe":[{"name":"Wikelo Favor","qty":10},{"name":"Yormandi Tongue","qty":5},{"name":"Ace Interceptor Helmet","qty":5},{"name":"UEE 6th Platoon Medal (Pristine)","qty":1}],"rep_req":0,"rep_rew":100,"status":"active","status_de":"aktiv"},{"id":"ship_028","reward":"Crusader Ares Star Fighter Ion Wikelo Sneak Special","art":"Schiff","mission":"Sneaky Starfighter Ion","recipe":[{"name":"Wikelo Favor","qty":10},{"name":"Yormandi Eye","qty":10},{"name":"Ace Interceptor Helmet","qty":5},{"name":"Tevarin War Service Marker (Pristine)","qty":1}],"rep_req":0,"rep_rew":100,"status":"active","status_de":"aktiv"},{"id":"ship_013","reward":"Crusader C1 Spirit Wikelo Special","art":"Schiff","mission":"Spirit Cargo mod","recipe":[{"name":"Wikelo Favor","qty":8},{"name":"Tevarin War Service Marker (Pristine)","qty":1}],"rep_req":0,"rep_rew":30,"status":"active","status_de":"aktiv"},{"id":"ship_003","reward":"Crusader Intrepid Wikelo Work Special","art":"Schiff","mission":"Upgrade Intrepid","recipe":[{"name":"Wikelo Favor","qty":3},{"name":"Government Cartography Agency Medal (Pristine)","qty":1}],"rep_req":0,"rep_rew":30,"status":"active","status_de":"aktiv"},{"id":"ship_042","reward":"Drake Clipper Wikelo War Special","art":"Schiff","mission":"Clipper Fight Now","recipe":[{"name":"Metamaterial Test #146","qty":1}],"rep_req":0,"rep_rew":0,"status":"active","status_de":"aktiv"},{"id":"ship_025","reward":"Drake Golem Wikelo Work Special","art":"Schiff","mission":"Golem Rocks","recipe":[{"name":"Wikelo Favor","qty":2},{"name":"ASD Secure Drive","qty":15}],"rep_req":0,"rep_rew":30,"status":"active","status_de":"aktiv"},{"id":"ship_030","reward":"Esperia Prowler Utility Wikelo Work Special","art":"Schiff","mission":"Prowler More Utility","recipe":[{"name":"Wikelo Favor","qty":40},{"name":"Yormandi Tongue","qty":10},{"name":"Yormandi Eye","qty":20},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":3},{"name":"Carinite (Pure)","qty":3}],"rep_req":0,"rep_rew":250,"status":"active","status_de":"aktiv"},{"id":"ship_037","reward":"Kruger L-21 Wolf Wikelo Sneak Special","art":"Schiff","mission":"Where Wolf? Here Wolf","recipe":[{"name":"Wikelo Favor","qty":10},{"name":"Vanduul Plating","qty":10},{"name":"Vanduul Metal","qty":10},{"name":"Large Artifact Fragment (Pristine)","qty":1}],"rep_req":0,"rep_rew":30,"status":"active","status_de":"aktiv"},{"id":"ship_041","reward":"Kruger L-22 Alpha Wolf Wikelo War Special","art":"Schiff","mission":"Extra Special Wolf","recipe":[{"name":"Metamaterial Test #146","qty":1}],"rep_req":0,"rep_rew":0,"status":"active","status_de":"aktiv"},{"id":"ship_032","reward":"Mirai Guardian MX Wikelo War Special","art":"Schiff","mission":"Guardian WiK-X","recipe":[{"name":"Wikelo Favor","qty":25},{"name":"Vanduul Plating","qty":30},{"name":"Vanduul Metal","qty":30},{"name":"Ace Interceptor Helmet","qty":15},{"name":"Large Artifact Fragment (Pristine)","qty":2}],"rep_req":0,"rep_rew":100,"status":"active","status_de":"aktiv"},{"id":"ship_006","reward":"Mirai Guardian QI Wikelo Special","art":"Schiff","mission":"Guardian take down ship","recipe":[{"name":"Wikelo Favor","qty":25},{"name":"Irradiated Valakkar Pearl (Grade AA)","qty":15},{"name":"DCHS-05 Orbital Positioning Comp-Board","qty":15},{"name":"UEE 6th Platoon Medal (Pristine)","qty":2}],"rep_req":0,"rep_rew":100,"status":"active","status_de":"aktiv"},{"id":"ship_031","reward":"Mirai Guardian Wikelo War Special","art":"Schiff","mission":"Guardian Fight Mod","recipe":[{"name":"Irradiated Valakkar Pearl (Grade AA)","qty":15},{"name":"Ace Interceptor Helmet","qty":10},{"name":"Tevarin War Service Marker (Pristine)","qty":1},{"name":"Wikelo Favor","qty":20}],"rep_req":0,"rep_rew":100,"status":"active","status_de":"aktiv"},{"id":"ship_004","reward":"Mirai Pulse Wikelo Special","art":"Schiff","mission":"Pulse Plus","recipe":[{"name":"Wikelo Favor","qty":4}],"rep_req":0,"rep_rew":20,"status":"active","status_de":"aktiv"},{"id":"ship_001","reward":"MISC Fortune Wikelo Special","art":"Schiff","mission":"Fortune ship for you","recipe":[{"name":"Wikelo Favor","qty":3},{"name":"Carinite (Pure)","qty":1}],"rep_req":0,"rep_rew":30,"status":"active","status_de":"aktiv"},{"id":"ship_034","reward":"MISC Prospector Wikelo Work Special","art":"Schiff","mission":"Prospects Look Good","recipe":[{"name":"Wikelo Favor","qty":6},{"name":"Carinite","qty":20},{"name":"Saldynium (Ore)","qty":30},{"name":"Jaclium (Ore)","qty":40},{"name":"Carinite (Pure)","qty":1}],"rep_req":0,"rep_rew":30,"status":"active","status_de":"aktiv"},{"id":"ship_016","reward":"MISC Starlancer MAX Wikelo Work Special","art":"Schiff","mission":"More than a Max","recipe":[{"name":"Wikelo Favor","qty":30},{"name":"Ace Interceptor Helmet","qty":10},{"name":"Carinite (Pure)","qty":3},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":3}],"rep_req":0,"rep_rew":250,"status":"active","status_de":"aktiv"},{"id":"ship_026","reward":"MISC Starlancer TAC Wikelo War Special","art":"Schiff","mission":"New Move Big Starlancer Ship","recipe":[{"name":"Wikelo Favor","qty":50},{"name":"Ace Interceptor Helmet","qty":15},{"name":"ASD Secure Drive","qty":30},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":3},{"name":"Tevarin War Service Marker (Pristine)","qty":3},{"name":"DCHS-05 Orbital Positioning Comp-Board","qty":3},{"name":"Carinite (Pure)","qty":3}],"rep_req":0,"rep_rew":250,"status":"active","status_de":"aktiv"},{"id":"ship_040","reward":"RSI Apollo Triage Wikelo Sneak Special","art":"Schiff","mission":"Red Fight Apollo","recipe":[{"name":"Wikelo Favor","qty":30}],"rep_req":0,"rep_rew":0,"status":"active","status_de":"aktiv"},{"id":"ship_017","reward":"RSI Constellation Taurus Wikelo War Special","art":"Schiff","mission":"Want Taurus ship","recipe":[{"name":"Wikelo Favor","qty":30},{"name":"Carinite (Pure)","qty":3},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":3},{"name":"Government Cartography Agency Medal (Pristine)","qty":3}],"rep_req":0,"rep_rew":250,"status":"active","status_de":"aktiv"},{"id":"ship_033","reward":"RSI Meteor Wikelo Sneak Special","art":"Schiff","mission":"RSI Meteor Mod","recipe":[{"name":"Wikelo Favor","qty":10},{"name":"Vanduul Plating","qty":10},{"name":"Vanduul Metal","qty":10},{"name":"Ace Interceptor Helmet","qty":5},{"name":"Large Artifact Fragment (Pristine)","qty":1}],"rep_req":0,"rep_rew":30,"status":"active","status_de":"aktiv"},{"id":"ship_020","reward":"RSI Polaris Wikelo Special","art":"Schiff","mission":"Now make Polaris. Short Time Deal.","recipe":[{"name":"Wikelo Favor","qty":50},{"name":"Polaris Bit","qty":15},{"name":"DCHS-05 Orbital Positioning Comp-Board","qty":10},{"name":"Carinite","qty":20},{"name":"Irradiated Valakkar Fang (Apex)","qty":20},{"name":"MG Scrip","qty":20},{"name":"Ace Interceptor Helmet","qty":15},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":15},{"name":"UEE 6th Platoon Medal (Pristine)","qty":15},{"name":"Carinite (Pure)","qty":15},{"name":"ASD Secure Drive","qty":15},{"name":"RCMBNT-PWL-1","qty":1},{"name":"RCMBNT-PWL-2","qty":1},{"name":"RCMBNT-PWL-3","qty":1},{"name":"RCMBNT-RGL-1","qty":1},{"name":"RCMBNT-RGL-2","qty":1},{"name":"RCMBNT-RGL-3","qty":1},{"name":"RCMBNT-XTL-1","qty":1},{"name":"RCMBNT-XTL-2","qty":1},{"name":"RCMBNT-XTL-3","qty":1}],"rep_req":0,"rep_rew":1000,"status":"active","status_de":"aktiv"},{"id":"ship_008","reward":"RSI Scorpius Wikelo Sneak Special","art":"Schiff","mission":"Build a Mod Scorpius","recipe":[{"name":"Wikelo Favor","qty":15},{"name":"DCHS-05 Orbital Positioning Comp-Board","qty":4},{"name":"Tevarin War Service Marker (Pristine)","qty":1}],"rep_req":0,"rep_rew":100,"status":"active","status_de":"aktiv"},{"id":"ship_005","reward":"RSI Ursa Medivac Wikelo Special","art":"Schiff","mission":"Make a Ursa Mod","recipe":[{"name":"Wikelo Favor","qty":4},{"name":"Saldynium (Ore)","qty":20},{"name":"Jaclium (Ore)","qty":20}],"rep_req":0,"rep_rew":20,"status":"active","status_de":"aktiv"},{"id":"ship_011","reward":"RSI Zeus Mk II CL","art":"Schiff","mission":"Zeus Cargo Special","recipe":[{"name":"Wikelo Favor","qty":20},{"name":"Carinite","qty":15},{"name":"Ace Interceptor Helmet","qty":10},{"name":"Carinite (Pure)","qty":2}],"rep_req":0,"rep_rew":100,"status":"active","status_de":"aktiv"},{"id":"ship_010","reward":"RSI Zeus Mk II ES Wikelo Work Special","art":"Schiff","mission":"Zeus Special","recipe":[{"name":"Wikelo Favor","qty":10},{"name":"UEE 6th Platoon Medal (Pristine)","qty":1}],"rep_req":0,"rep_rew":30,"status":"active","status_de":"aktiv"},{"id":"ship_019","reward":"Argo ATLS GEO IKTI","art":"Fahrzeug","mission":"Make jumpy ATLS shoot","recipe":[{"name":"Wikelo Favor","qty":1},{"name":"Argo ATLS GEO","qty":1},{"name":"NN-13 Cannon","qty":2},{"name":"Argo ATLS IKTI","qty":1}],"rep_req":0,"rep_rew":20,"status":"active","status_de":"aktiv"},{"id":"ship_018","reward":"Argo ATLS IKTI","art":"Fahrzeug","mission":"Make ATLS shoot","recipe":[{"name":"Wikelo Favor","qty":2},{"name":"Irradiated Valakkar Fang (Apex)","qty":5},{"name":"Argo ATLS","qty":1},{"name":"NN-13 Cannon","qty":2}],"rep_req":0,"rep_rew":20,"status":"active","status_de":"aktiv"},{"id":"ship_021","reward":"ATLS Cool Metal Color","art":"Fahrzeug","mission":"ATLS Cool Metal Color","recipe":[{"name":"Wikelo Favor","qty":1},{"name":"Carinite (Pure)","qty":1},{"name":"Argo ATLS","qty":1}],"rep_req":0,"rep_rew":20,"status":"active","status_de":"aktiv"},{"id":"ship_023","reward":"ATLS Orange Line","art":"Fahrzeug","mission":"ATLS Orange Line","recipe":[{"name":"Wikelo Favor","qty":1},{"name":"Argo ATLS","qty":1}],"rep_req":0,"rep_rew":20,"status":"active","status_de":"aktiv"},{"id":"ship_022","reward":"ATLS Snowland Color","art":"Fahrzeug","mission":"ATLS Snowland Color","recipe":[{"name":"Wikelo Favor","qty":1},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":1},{"name":"Argo ATLS","qty":1}],"rep_req":0,"rep_rew":20,"status":"active","status_de":"aktiv"},{"id":"item_019","reward":"Coda \"Ascension\" Pistol; 20x Coda Pistol Magazine (6 cap)","art":"Waffe","mission":"Fix up Coda gun","recipe":[{"name":"Ace Interceptor Helmet","qty":5},{"name":"Tevarin War Service Marker (Pristine)","qty":1},{"name":"MG Scrip","qty":30},{"name":"Coda Pistol","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-store","status_de":"zurueckgezogen (Store)"},{"id":"item_027","reward":"F55 \"Mark I\" LMG","art":"Waffe","mission":"F55 Look Better","recipe":[{"name":"F55 LMG","qty":1},{"name":"Yormandi Eye","qty":4},{"name":"Yormandi Tongue","qty":2},{"name":"Carinite","qty":20}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_022","reward":"Fresnel \"Deepwater\" Energy LMG; 20x Fresnel Energy LMG Battery (165 Cap)","art":"Waffe","mission":"Heavy VOLT Zapper","recipe":[{"name":"ASD Secure Drive","qty":5},{"name":"RCMBNT-XTL-1","qty":5},{"name":"RCMBNT-XTL-2","qty":5},{"name":"RCMBNT-XTL-3","qty":5},{"name":"Fresnel Energy LMG","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_026","reward":"Fresnel \"Yormandi\" Energy LMG","art":"Waffe","mission":"Yormandi Gun","recipe":[{"name":"Yormandi Eye","qty":6},{"name":"Yormandi Tongue","qty":3},{"name":"Fresnel Energy LMG","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_017","reward":"Karna \"Ascension\" Rifle; 20x Karna Rifle Battery (35 cap)","art":"Waffe","mission":"Prettify Karna Gun","recipe":[{"name":"Irradiated Valakkar Fang (Juvenile)","qty":10},{"name":"Irradiated Kopion Horn","qty":10},{"name":"Irradiated Valakkar Fang (Adult)","qty":10},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":1},{"name":"Karna Rifle","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-store","status_de":"zurueckgezogen (Store)"},{"id":"item_036","reward":"Killshot \"Dominion Camo\" Rifle; 20x Killshot Rifle Magazine (45 Cap)","art":"Waffe","mission":"Your Best Shot","recipe":[{"name":"Wikelo Favor","qty":1},{"name":"Killshot Rifle","qty":1},{"name":"Expired Quantanium Fuel Canister","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_002","reward":"Parallax \"Fun Kopion Skull\" Energy Assault Rifle; 20x Parallax Rifle Battery (80 Cap)","art":"Waffe","mission":"Fun Kopion Skull Gun","recipe":[{"name":"Carinite","qty":10},{"name":"Saldynium (Ore)","qty":15},{"name":"Parallax Energy Assault Rifle","qty":1},{"name":"Tundra Kopion Horn","qty":20},{"name":"Jaclium (Ore)","qty":20}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_003","reward":"Parallax \"Fun Kopion Tooth\" Energy Assault Rifle; 20x Parallax Rifle Battery (80 Cap)","art":"Waffe","mission":"Fun Kopion Tooth Gun","recipe":[{"name":"Carinite","qty":20},{"name":"Saldynium (Ore)","qty":30},{"name":"Parallax Energy Assault Rifle","qty":1},{"name":"Tundra Kopion Horn","qty":35},{"name":"Jaclium (Ore)","qty":40}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_004","reward":"Parallax \"Fun Military Skull\" Energy Assault Rifle; 20x Parallax Rifle Battery (80 Cap)","art":"Waffe","mission":"Fun Military Skull Gun","recipe":[{"name":"Carinite","qty":10},{"name":"Saldynium (Ore)","qty":15},{"name":"Parallax Energy Assault Rifle","qty":1},{"name":"Irradiated Valakkar Fang (Juvenile)","qty":20},{"name":"Jaclium (Ore)","qty":20}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_005","reward":"Parallax \"Fun Military Tooth\" Energy Assault Rifle; 20x Parallax Rifle Battery (80 Cap)","art":"Waffe","mission":"Fun Military Tooth Gun","recipe":[{"name":"Carinite","qty":20},{"name":"Saldynium (Ore)","qty":30},{"name":"Parallax Energy Assault Rifle","qty":1},{"name":"Valakkar Fang (Juvenile)","qty":35},{"name":"Jaclium (Ore)","qty":40}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_013","reward":"Prism \"Irradiated\" Laser Shotgun; 20x Prism Laser Shotgun Battery (20 cap)","art":"Waffe","mission":"Make VOLT shotgun angrier","recipe":[{"name":"Irradiated Valakkar Fang (Adult)","qty":10},{"name":"Irradiated Valakkar Fang (Juvenile)","qty":5},{"name":"Prism Laser Shotgun","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_009","reward":"Quartz \"Cobalt Camo\" Energy SMG; 20x Quartz Energy SMG Battery (45 cap)","art":"Waffe","mission":"Volt gun more Navy-like","recipe":[{"name":"MG Scrip","qty":30},{"name":"Ace Interceptor Helmet","qty":5},{"name":"Grassland Quasi Grazer Egg","qty":50},{"name":"Quartz Energy SMG","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_011","reward":"Quartz \"Hunter Camo\" Energy SMG; 20x Quartz Energy SMG Battery (45 cap)","art":"Waffe","mission":"Make gun sandy","recipe":[{"name":"Council Scrip","qty":30},{"name":"Ace Interceptor Helmet","qty":5},{"name":"Advocacy Badge (Replica)","qty":10},{"name":"Quartz Energy SMG","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_010","reward":"Quartz \"Jungle Camo\" Energy SMG; 20x Quartz Energy SMG Battery (45 cap)","art":"Waffe","mission":"Zappy gun more woodlike","recipe":[{"name":"MG Scrip","qty":30},{"name":"Ace Interceptor Helmet","qty":5},{"name":"Tundra Kopion Horn","qty":35},{"name":"Quartz Energy SMG","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_032","reward":"R97 \"Crimson Camo\" Shotgun; 20x R97 Shotgun Magazine (18 cap)","art":"Waffe","mission":"Red Fight Shotgun","recipe":[{"name":"Wikelo Favor","qty":3},{"name":"Sadaryx","qty":10},{"name":"R97 Shotgun","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_034","reward":"R97 \"Crimson Camo\" Shotgun; 20x R97 Shotgun Magazine (18 cap)","art":"Waffe","mission":"<= UNINITIALIZED =>","recipe":[{"name":"Basketball","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_018","reward":"S71 \"Ascension\" Rifle; 20x S71 Rifle Magazine (30 cap)","art":"Waffe","mission":"Built on S71 rifle","recipe":[{"name":"Carinite","qty":10},{"name":"Saldynium (Ore)","qty":10},{"name":"Jaclium (Ore)","qty":10},{"name":"Carinite (Pure)","qty":1},{"name":"S71 Rifle","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-store","status_de":"zurueckgezogen (Store)"},{"id":"item_031","reward":"Tripledown \"Heatwave\" Pistol; 20x Tripledown Pistol Magazine (12 Cap)","art":"Waffe","mission":"Hot Shot","recipe":[{"name":"Carinite","qty":20},{"name":"Bluemoon Fungus","qty":20},{"name":"Tripledown Pistol","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_037","reward":"Vendetta \"Snow Camo\" HMG; 20x Vendetta HMG Magazine (1000 Cap)","art":"Waffe","mission":"Too Much Gun","recipe":[{"name":"Wikelo Favor","qty":1},{"name":"Vendetta HMG","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_020","reward":"Zenith \"Snow Camo\" Laser Sniper Rifle; 20x Zenith Laser Sniper Rifle Battery (22 Cap)","art":"Waffe","mission":"Snow Snipe","recipe":[{"name":"ASD Secure Drive","qty":7},{"name":"Zenith Laser Sniper Rifle","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_001","reward":"Ana Arms Endro; Ana Legs Endro; Ana Core Endro; Ana Helmet Endro","art":"Ruestung","mission":"Armor with horn and string","recipe":[{"name":"Carinite (Pure)","qty":1},{"name":"Antium Core","qty":1},{"name":"Antium Helmet","qty":1},{"name":"Antium Legs","qty":1},{"name":"Antium Arms","qty":1}],"rep_req":0,"rep_rew":25,"status":"active","status_de":"aktiv"},{"id":"item_012","reward":"Bokto Core; Bokto Arms; Bokto Legs; Bokto Helmet","art":"Ruestung","mission":"Make glowy armor","recipe":[{"name":"Antium Core","qty":1},{"name":"Antium Helmet","qty":1},{"name":"Antium Arms","qty":1},{"name":"Antium Legs","qty":1},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":1}],"rep_req":0,"rep_rew":25,"status":"active","status_de":"aktiv"},{"id":"item_024","reward":"Corbel Helmet Crush; Corbel Core Crush; Corbel Arms Crush; Corbel Legs Crush; Novikov Backpack Crush","art":"Ruestung","mission":"Shiny Builder Suit","recipe":[{"name":"Corbel Core Mire","qty":1},{"name":"Corbel Arms Mire","qty":1},{"name":"Corbel Legs Mire","qty":1},{"name":"Novikov Backpack Mire","qty":1},{"name":"ASD Secure Drive","qty":10},{"name":"RCMBNT-RGL-1","qty":3},{"name":"RCMBNT-RGL-2","qty":3},{"name":"RCMBNT-RGL-3","qty":3},{"name":"Corbel Helmet Mire","qty":1}],"rep_req":0,"rep_rew":0,"status":"active","status_de":"aktiv"},{"id":"item_008","reward":"DCP Armor Helmet Cobalt Camo; DCP Armor Core Cobalt Camo; DCP Armor Arms Cobalt Camo; DCP Armor Legs Cobalt Camo","art":"Ruestung","mission":"Make space navy armor","recipe":[{"name":"Wikelo Favor","qty":3},{"name":"Ace Interceptor Helmet","qty":5},{"name":"Grassland Quasi Grazer Egg","qty":50},{"name":"ADP-mk4 Core Woodland","qty":1},{"name":"ADP-mk4 Arms Woodland","qty":1},{"name":"ADP-mk4 Legs Woodland","qty":1},{"name":"ADP-mk4 Helmet Woodland","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_007","reward":"DCP Armor Helmet Hunter Camo; DCP Armor Core Hunter Camo; DCP Armor Arms Hunter Camo; DCP Armor Legs Hunter Camo","art":"Ruestung","mission":"Look at desert but don't see you","recipe":[{"name":"Ace Interceptor Helmet","qty":5},{"name":"Advocacy Badge (Replica)","qty":20},{"name":"ADP-mk4 Core Woodland","qty":1},{"name":"ADP-mk4 Arms Woodland","qty":1},{"name":"ADP-mk4 Legs Woodland","qty":1},{"name":"ADP-mk4 Helmet Woodland","qty":1},{"name":"Wikelo Favor","qty":3}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_006","reward":"DCP Armor Helmet Jungle Camo; DCP Armor Core Jungle Camo; DCP Armor Arms Jungle Camo; DCP Armor Legs Jungle Camo","art":"Ruestung","mission":"Want armor look like tree?","recipe":[{"name":"Ace Interceptor Helmet","qty":5},{"name":"Valakkar Fang (Juvenile)","qty":50},{"name":"ADP-mk4 Core Woodland","qty":1},{"name":"ADP-mk4 Arms Woodland","qty":1},{"name":"ADP-mk4 Legs Woodland","qty":1},{"name":"ADP-mk4 Helmet Woodland","qty":1},{"name":"Wikelo Favor","qty":3}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_021","reward":"Geist Armor Arms Snow Camo; Geist Armor Core Snow Camo; Geist Armor Helmet Snow Camo; Geist Armor Legs Snow Camo; Geist Backpack Snow Camo","art":"Ruestung","mission":"Hide Snow Suit","recipe":[{"name":"ASD Secure Drive","qty":4},{"name":"Geist Armor Arms ASD Edition","qty":1},{"name":"Geist Armor Core ASD Edition","qty":1},{"name":"Geist Armor Helmet ASD Edition","qty":1},{"name":"Geist Armor Legs ASD Edition","qty":1},{"name":"Geist Backpack ASD Edition","qty":1}],"rep_req":0,"rep_rew":25,"status":"active","status_de":"aktiv"},{"id":"item_033","reward":"Monde Helmet Crimson Camo; Monde Core Crimson Camo; Monde Arms Crimson Camo; Monde Legs Crimson Camo; Warden Backpack Crimson Camo","art":"Ruestung","mission":"Red Fight Armor","recipe":[{"name":"Wikelo Favor","qty":3},{"name":"Sadaryx","qty":10},{"name":"Monde Helmet","qty":1},{"name":"Monde Core","qty":1},{"name":"Monde Arms","qty":1},{"name":"Monde Legs","qty":1},{"name":"Warden Backpack Monde","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_014","reward":"Novikov \"Ascension\" Exploration Suit; Novikov \"Ascension\" Helmet; Novikov \"Ascension\" Backpack","art":"Ruestung","mission":"Walk in danger. Look good.","recipe":[{"name":"Novikov Helmet","qty":1},{"name":"MG Scrip","qty":30},{"name":"Irradiated Valakkar Fang (Adult)","qty":10},{"name":"Irradiated Valakkar Fang (Juvenile)","qty":20},{"name":"Irradiated Valakkar Pearl (Grade AAA)","qty":1},{"name":"Novikov Exploration Suit","qty":1}],"rep_req":0,"rep_rew":25,"status":"retired-store","status_de":"zurueckgezogen (Store)"},{"id":"item_028","reward":"Palatino Helmet Mark I; Palatino Arms Mark I; Palatino Legs Mark I; Palatino Core Mark I; Palatino Backpack Mark I","art":"Ruestung","mission":"Test Armor","recipe":[{"name":"Yormandi Eye","qty":14},{"name":"Yormandi Tongue","qty":7},{"name":"Palatino Helmet","qty":1},{"name":"Palatino Arms","qty":1},{"name":"Palatino Legs","qty":1},{"name":"Palatino Core","qty":1},{"name":"Palatino Backpack","qty":1}],"rep_req":0,"rep_rew":25,"status":"active","status_de":"aktiv"},{"id":"item_023","reward":"Strata Core Heatwave; Strata Arms Heatwave; Strata Legs Heatwave; Strata Helmet Heatwave; Strata Backpack Heatwave","art":"Ruestung","mission":"Do Lava Suit","recipe":[{"name":"Carinite","qty":30},{"name":"RCMBNT-PWL-1","qty":4},{"name":"RCMBNT-PWL-2","qty":4},{"name":"RCMBNT-PWL-3","qty":4},{"name":"Strata Arms","qty":1},{"name":"Strata Legs","qty":1},{"name":"Strata Helmet","qty":1},{"name":"Strata Backpack","qty":1},{"name":"Strata Core","qty":1}],"rep_req":0,"rep_rew":25,"status":"active","status_de":"aktiv"},{"id":"item_035","reward":"Tailwind Flight Suit Dominion Camo; Tailwind Flight Helmet Dominion Camo","art":"Ruestung","mission":"Suit Up Take Off","recipe":[{"name":"Wikelo Favor","qty":1},{"name":"Tailwind Flight Suit","qty":1},{"name":"Tailwind Flight Helmet","qty":1},{"name":"Expired Quantanium Fuel Canister","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_029","reward":"Testudo Helmet Clanguard; Testudo Arms Clanguard; Testudo Core Clanguard; Testudo Legs Clanguard; Testudo Backpack Clanguard","art":"Ruestung","mission":"Armor with Vanduul","recipe":[{"name":"Vanduul Plating","qty":15},{"name":"Vanduul Metal","qty":15},{"name":"Testudo Legs Turfwar","qty":1},{"name":"Testudo Helmet Turfwar","qty":1},{"name":"Testudo Core Turfwar","qty":1},{"name":"Testudo Arms Turfwar","qty":1},{"name":"Testudo Backpack Turfwar","qty":1}],"rep_req":0,"rep_rew":25,"status":"active","status_de":"aktiv"},{"id":"item_016","reward":"Venture Core Ascension; Venture Arms Ascension; Venture Legs Ascension; Venture Helmet Ascension","art":"Ruestung","mission":"Adventure a A-Venture","recipe":[{"name":"Venture Core","qty":1},{"name":"Venture Helmet White","qty":1},{"name":"Venture Legs","qty":1},{"name":"MG Scrip","qty":30},{"name":"Saldynium (Ore)","qty":10},{"name":"Jaclium (Ore)","qty":20},{"name":"Carinite (Pure)","qty":1},{"name":"Venture Arms","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-store","status_de":"zurueckgezogen (Store)"},{"id":"item_015","reward":"Xanthule Ascension Flight Suit; Xanthule Ascension Flight Helmet","art":"Ruestung","mission":"Xi'an Xanthule Suit made better","recipe":[{"name":"Xanthule Flight Helmet","qty":1},{"name":"Ace Interceptor Helmet","qty":10},{"name":"Tevarin War Service Marker (Pristine)","qty":1},{"name":"MG Scrip","qty":20},{"name":"Xanthule Flight Suit","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-store","status_de":"zurueckgezogen (Store)"},{"id":"item_038","reward":"[Unknown:a15e8a38-f90]; [Unknown:f2a15cd0-ada]; [Unknown:a15e8a38-f90]","art":"Ausruestung","mission":"Heavy and Bright","recipe":[{"name":"Wikelo Favor","qty":1},{"name":"BUL-H4 Helmet","qty":1},{"name":"BUL-H4 Armor","qty":1},{"name":"H4-PBF Ammo Carrier","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_039","reward":"[Unknown:a15e8a38-f90]; [Unknown:f2a15cd0-ada]; [Unknown:a15e8a38-f90]","art":"Ausruestung","mission":"TheCollector_CombatClothing","recipe":[{"name":"Wikelo Favor","qty":1},{"name":"H4-PBF Ammo Carrier","qty":1},{"name":"BUL-H4 Armor","qty":1},{"name":"BUL-H4 Helmet","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_030","reward":"Boomtube \"Clanguard\" Rocket Launcher; Boomtube Rocket","art":"Ausruestung","mission":"Curious Weapon","recipe":[{"name":"Vanduul Plating","qty":2},{"name":"Vanduul Metal","qty":2},{"name":"Boomtube Rocket Launcher","qty":1}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"},{"id":"item_041","reward":"Very Hungry","art":"Ausruestung","mission":"Very Hungry","recipe":[{"name":"Berry Blend Smoothie","qty":1},{"name":"Ermer Family Farms Fat Free Ice Cream","qty":1}],"rep_req":0,"rep_rew":0,"status":"active","status_de":"aktiv"},{"id":"item_025","reward":"XDL \"Mark I\" Monocular Rangefinder","art":"Ausruestung","mission":"Want Better Eyes?","recipe":[{"name":"Wikelo Favor","qty":1},{"name":"Yormandi Eye","qty":2},{"name":"Yormandi Tongue","qty":1}],"rep_req":0,"rep_rew":0,"status":"retired-loot","status_de":"zurueckgezogen (Loot)"},{"id":"item_040","reward":"Wikelo Arrive to System","art":"Freischaltung","mission":"Wikelo Arrive to System","recipe":[{"name":"Vestal Water","qty":1},{"name":"Tundra Kopion Horn","qty":3}],"rep_req":0,"rep_rew":10,"status":"active","status_de":"aktiv"}],"currency_map":{"Wikelo Favor":[{"recipe":[{"name":"Irradiated Valakkar Pearl (Grade AA)","qty":12}],"recipe_raw":"12x Irradiated Valakkar Pearl (Grade AA)","mission":"Trade Worm Parts for Favors?"},{"recipe":[{"name":"MG Scrip","qty":50}],"recipe_raw":"50x MG Scrip","mission":"Trade Merc Scrip for Favors?"},{"recipe":[{"name":"Council Scrip","qty":50}],"recipe_raw":"50x Council Scrip","mission":"Trade Council Scrip for Favors?"},{"recipe":[{"name":"Carinite","qty":50}],"recipe_raw":"50x Carinite","mission":"Turn Things to Favor"}],"Polaris Bit":[{"recipe":[],"recipe_raw":"","mission":"Want Polaris? Need something special."}]},"prices":{"Carinite":{"buy":null,"sell":null},"Jaclium":{"buy":null,"sell":null},"Sadaryx":{"buy":null,"sell":null},"Saldynium":{"buy":null,"sell":null}},"ingredients":{"Wikelo Favor":{"src":"Wikelo/Waehrung","n_offers":51,"blueprint":null,"ore":null},"Ace Interceptor Helmet":{"src":"Item/Sonstiges","n_offers":20,"blueprint":null,"ore":null},"Carinite (Pure)":{"src":"Mining/Erz","n_offers":16,"blueprint":null,"ore":"Carinite"},"Irradiated Valakkar Pearl (Grade AAA)":{"src":"Creature/Loot","n_offers":14,"blueprint":null,"ore":null},"Carinite":{"src":"Mining/Erz","n_offers":12,"blueprint":null,"ore":"Carinite"},"ASD Secure Drive":{"src":"CZ/Tech-Loot","n_offers":11,"blueprint":null,"ore":null},"DCHS-05 Orbital Positioning Comp-Board":{"src":"CZ/Tech-Loot","n_offers":10,"blueprint":null,"ore":null},"Tevarin War Service Marker (Pristine)":{"src":"Missions-/Beute-Item","n_offers":10,"blueprint":null,"ore":null},"MG Scrip":{"src":"Wikelo/Waehrung","n_offers":9,"blueprint":null,"ore":null},"Jaclium (Ore)":{"src":"Mining/Erz","n_offers":8,"blueprint":null,"ore":"Jaclium"},"Saldynium (Ore)":{"src":"Mining/Erz","n_offers":8,"blueprint":null,"ore":"Saldynium"},"Yormandi Eye":{"src":"Creature/Loot","n_offers":6,"blueprint":null,"ore":null},"Yormandi Tongue":{"src":"Creature/Loot","n_offers":6,"blueprint":null,"ore":null},"Irradiated Valakkar Fang (Juvenile)":{"src":"Creature/Loot","n_offers":5,"blueprint":null,"ore":null},"UEE 6th Platoon Medal (Pristine)":{"src":"Missions-/Beute-Item","n_offers":5,"blueprint":null,"ore":null},"Vanduul Metal":{"src":"Salvage/Vanduul","n_offers":5,"blueprint":null,"ore":null},"Vanduul Plating":{"src":"Salvage/Vanduul","n_offers":5,"blueprint":null,"ore":null},"Argo ATLS":{"src":"Item/Sonstiges","n_offers":4,"blueprint":null,"ore":null},"Government Cartography Agency Medal (Pristine)":{"src":"Missions-/Beute-Item","n_offers":4,"blueprint":null,"ore":null},"Irradiated Valakkar Fang (Adult)":{"src":"Creature/Loot","n_offers":4,"blueprint":null,"ore":null},"Parallax Energy Assault Rifle":{"src":"Craftbar (Bauplan)","n_offers":4,"blueprint":[{"name":"Tungsten","qty":40},{"name":"Gold","qty":20},{"name":"Carinite","qty":1}],"ore":null},"RCMBNT-PWL-1":{"src":"CZ/Tech-Loot","n_offers":4,"blueprint":null,"ore":null},"RCMBNT-PWL-2":{"src":"CZ/Tech-Loot","n_offers":4,"blueprint":null,"ore":null},"RCMBNT-PWL-3":{"src":"CZ/Tech-Loot","n_offers":4,"blueprint":null,"ore":null},"RCMBNT-RGL-1":{"src":"CZ/Tech-Loot","n_offers":4,"blueprint":null,"ore":null},"RCMBNT-RGL-2":{"src":"CZ/Tech-Loot","n_offers":4,"blueprint":null,"ore":null},"RCMBNT-RGL-3":{"src":"CZ/Tech-Loot","n_offers":4,"blueprint":null,"ore":null},"RCMBNT-XTL-1":{"src":"CZ/Tech-Loot","n_offers":4,"blueprint":null,"ore":null},"RCMBNT-XTL-2":{"src":"CZ/Tech-Loot","n_offers":4,"blueprint":null,"ore":null},"RCMBNT-XTL-3":{"src":"CZ/Tech-Loot","n_offers":4,"blueprint":null,"ore":null},"Tundra Kopion Horn":{"src":"Creature/Loot","n_offers":4,"blueprint":null,"ore":null},"ADP-mk4 Arms Woodland":{"src":"Craftbar (Bauplan)","n_offers":3,"blueprint":[{"name":"Ouratite","qty":60},{"name":"Aslarite","qty":20}],"ore":null},"ADP-mk4 Core Woodland":{"src":"Craftbar (Bauplan)","n_offers":3,"blueprint":[{"name":"Ouratite","qty":70},{"name":"Aslarite","qty":20}],"ore":null},"ADP-mk4 Helmet Woodland":{"src":"Craftbar (Bauplan)","n_offers":3,"blueprint":[{"name":"Ouratite","qty":50},{"name":"Aslarite","qty":10}],"ore":null},"ADP-mk4 Legs Woodland":{"src":"Craftbar (Bauplan)","n_offers":3,"blueprint":[{"name":"Ouratite","qty":60},{"name":"Aslarite","qty":20}],"ore":null},"Irradiated Valakkar Fang (Apex)":{"src":"Creature/Loot","n_offers":3,"blueprint":null,"ore":null},"Large Artifact Fragment (Pristine)":{"src":"Missions-/Beute-Item","n_offers":3,"blueprint":null,"ore":null},"Polaris Bit":{"src":"Wikelo/Waehrung","n_offers":3,"blueprint":null,"ore":null},"Quartz Energy SMG":{"src":"Craftbar (Bauplan)","n_offers":3,"blueprint":[{"name":"Tungsten","qty":30},{"name":"Gold","qty":10},{"name":"Carinite","qty":1}],"ore":null},"Advocacy Badge (Replica)":{"src":"Missions-/Beute-Item","n_offers":2,"blueprint":null,"ore":null},"Antium Arms":{"src":"Craftbar (Bauplan)","n_offers":2,"blueprint":[{"name":"Tungsten","qty":60},{"name":"Aslarite","qty":20},{"name":"Stileron","qty":60}],"ore":null},"Antium Core":{"src":"Craftbar (Bauplan)","n_offers":2,"blueprint":[{"name":"Tungsten","qty":70},{"name":"Aslarite","qty":20},{"name":"Stileron","qty":60}],"ore":null},"Antium Helmet":{"src":"Craftbar (Bauplan)","n_offers":2,"blueprint":[{"name":"Tungsten","qty":50},{"name":"Aslarite","qty":10},{"name":"Stileron","qty":50}],"ore":null},"Antium Legs":{"src":"Craftbar (Bauplan)","n_offers":2,"blueprint":[{"name":"Tungsten","qty":60},{"name":"Aslarite","qty":20},{"name":"Stileron","qty":60}],"ore":null},"BUL-H4 Armor":{"src":"Craftbar (Bauplan)","n_offers":2,"blueprint":[{"name":"Ouratite","qty":80},{"name":"Titanium","qty":80},{"name":"Aslarite","qty":40}],"ore":null},"BUL-H4 Helmet":{"src":"Craftbar (Bauplan)","n_offers":2,"blueprint":[{"name":"Ouratite","qty":40},{"name":"Titanium","qty":40},{"name":"Aslarite","qty":20}],"ore":null},"Expired Quantanium Fuel Canister":{"src":"Mining/Erz","n_offers":2,"blueprint":null,"ore":null},"Fresnel Energy LMG":{"src":"Craftbar (Bauplan)","n_offers":2,"blueprint":[{"name":"Tungsten","qty":60},{"name":"Gold","qty":20},{"name":"Janalite","qty":1}],"ore":null},"Grassland Quasi Grazer Egg":{"src":"Creature/Loot","n_offers":2,"blueprint":null,"ore":null},"H4-PBF Ammo Carrier":{"src":"Craftbar (Bauplan)","n_offers":2,"blueprint":[{"name":"Titanium","qty":40}],"ore":null},"Irradiated Kopion Horn":{"src":"Creature/Loot","n_offers":2,"blueprint":null,"ore":null},"Irradiated Valakkar Pearl (Grade AA)":{"src":"Creature/Loot","n_offers":2,"blueprint":null,"ore":null},"Metamaterial Test #146":{"src":"Missions-/Beute-Item","n_offers":2,"blueprint":null,"ore":null},"NN-13 Cannon":{"src":"Craftbar (Bauplan)","n_offers":2,"blueprint":[{"name":"Titanium","qty":360},{"name":"Copper","qty":140},{"name":"Lindinium","qty":70}],"ore":null},"Sadaryx":{"src":"Mining/Erz","n_offers":2,"blueprint":null,"ore":"Sadaryx"},"Valakkar Fang (Juvenile)":{"src":"Creature/Loot","n_offers":2,"blueprint":null,"ore":null},"Argo ATLS GEO":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"Argo ATLS IKTI":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"Basketball":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"Berry Blend Smoothie":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"Bluemoon Fungus":{"src":"Creature/Loot","n_offers":1,"blueprint":null,"ore":null},"Boomtube Rocket Launcher":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"Coda Pistol":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Aluminum","qty":20},{"name":"Hephaestanite","qty":10},{"name":"Iron","qty":10}],"ore":null},"Corbel Arms Mire":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Laranite","qty":60},{"name":"Aslarite","qty":20},{"name":"Titanium","qty":60}],"ore":null},"Corbel Core Mire":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Laranite","qty":70},{"name":"Aslarite","qty":20},{"name":"Titanium","qty":70}],"ore":null},"Corbel Helmet Mire":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Laranite","qty":50},{"name":"Aslarite","qty":10},{"name":"Titanium","qty":50}],"ore":null},"Corbel Legs Mire":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Laranite","qty":60},{"name":"Aslarite","qty":20},{"name":"Titanium","qty":60}],"ore":null},"Council Scrip":{"src":"Wikelo/Waehrung","n_offers":1,"blueprint":null,"ore":null},"Ermer Family Farms Fat Free Ice Cream":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"F55 LMG":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Lindinium","qty":60},{"name":"Hephaestanite","qty":40},{"name":"Iron","qty":30}],"ore":null},"Geist Armor Arms ASD Edition":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Taranite","qty":30},{"name":"Aslarite","qty":20},{"name":"Stileron","qty":30}],"ore":null},"Geist Armor Core ASD Edition":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Taranite","qty":40},{"name":"Aslarite","qty":20},{"name":"Stileron","qty":40}],"ore":null},"Geist Armor Helmet ASD Edition":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Taranite","qty":20},{"name":"Aslarite","qty":10},{"name":"Stileron","qty":20}],"ore":null},"Geist Armor Legs ASD Edition":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Taranite","qty":30},{"name":"Aslarite","qty":20},{"name":"Stileron","qty":30}],"ore":null},"Geist Backpack ASD Edition":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"Karna Rifle":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Riccite","qty":40},{"name":"Beryl","qty":20},{"name":"Beradom","qty":3}],"ore":null},"Killshot Rifle":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Iron","qty":40},{"name":"Hephaestanite","qty":20},{"name":"Iron","qty":20}],"ore":null},"Monde Arms":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Ouratite","qty":40},{"name":"Aslarite","qty":20},{"name":"Savrilium","qty":40}],"ore":null},"Monde Core":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Ouratite","qty":40},{"name":"Aslarite","qty":20},{"name":"Savrilium","qty":40}],"ore":null},"Monde Helmet":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Ouratite","qty":30},{"name":"Aslarite","qty":10},{"name":"Savrilium","qty":30}],"ore":null},"Monde Legs":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Ouratite","qty":40},{"name":"Aslarite","qty":20},{"name":"Savrilium","qty":40}],"ore":null},"Novikov Backpack Mire":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Stileron","qty":40}],"ore":null},"Novikov Exploration Suit":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Stileron","qty":40},{"name":"Aslarite","qty":120}],"ore":null},"Novikov Helmet":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Stileron","qty":80},{"name":"Aslarite","qty":80}],"ore":null},"Palatino Arms":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Laranite","qty":60},{"name":"Aslarite","qty":20},{"name":"Savrilium","qty":60}],"ore":null},"Palatino Backpack":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"Palatino Core":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Laranite","qty":70},{"name":"Aslarite","qty":20},{"name":"Savrilium","qty":70}],"ore":null},"Palatino Helmet":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Laranite","qty":50},{"name":"Aslarite","qty":10},{"name":"Savrilium","qty":50}],"ore":null},"Palatino Legs":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Laranite","qty":60},{"name":"Aslarite","qty":20},{"name":"Savrilium","qty":60}],"ore":null},"Prism Laser Shotgun":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Torite","qty":15},{"name":"Gold","qty":10},{"name":"Janalite","qty":1}],"ore":null},"R97 Shotgun":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Savrilium","qty":40},{"name":"Hephaestanite","qty":20},{"name":"Iron","qty":20}],"ore":null},"S71 Rifle":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Aluminum","qty":40},{"name":"Hephaestanite","qty":20},{"name":"Iron","qty":20}],"ore":null},"Strata Arms":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Corundum","qty":40},{"name":"Aslarite","qty":20},{"name":"Riccite","qty":40}],"ore":null},"Strata Backpack":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Corundum","qty":40},{"name":"Aslarite","qty":20}],"ore":null},"Strata Core":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Corundum","qty":50},{"name":"Aslarite","qty":20},{"name":"Riccite","qty":50}],"ore":null},"Strata Helmet":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Corundum","qty":30},{"name":"Aslarite","qty":20},{"name":"Riccite","qty":30}],"ore":null},"Strata Legs":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Corundum","qty":40},{"name":"Aslarite","qty":20},{"name":"Riccite","qty":40}],"ore":null},"Tailwind Flight Helmet":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"Tailwind Flight Suit":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Silicon","qty":60}],"ore":null},"Testudo Arms Turfwar":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Ouratite","qty":40},{"name":"Aslarite","qty":20},{"name":"Stileron","qty":40}],"ore":null},"Testudo Backpack Turfwar":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Ouratite","qty":40}],"ore":null},"Testudo Core Turfwar":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Ouratite","qty":50},{"name":"Aslarite","qty":20},{"name":"Stileron","qty":50}],"ore":null},"Testudo Helmet Turfwar":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Ouratite","qty":30},{"name":"Aslarite","qty":10},{"name":"Stileron","qty":30}],"ore":null},"Testudo Legs Turfwar":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Ouratite","qty":40},{"name":"Aslarite","qty":20},{"name":"Stileron","qty":40}],"ore":null},"Tripledown Pistol":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Iron","qty":20},{"name":"Hephaestanite","qty":10},{"name":"Iron","qty":10}],"ore":null},"Vendetta HMG":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Riccite","qty":150},{"name":"Tungsten","qty":80}],"ore":null},"Venture Arms":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Taranite","qty":20},{"name":"Aslarite","qty":20}],"ore":null},"Venture Core":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Taranite","qty":40},{"name":"Aslarite","qty":20}],"ore":null},"Venture Helmet White":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Taranite","qty":20},{"name":"Aslarite","qty":10}],"ore":null},"Venture Legs":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Taranite","qty":30},{"name":"Aslarite","qty":20}],"ore":null},"Vestal Water":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"Warden Backpack Monde":{"src":"Item/Sonstiges","n_offers":1,"blueprint":null,"ore":null},"Xanthule Flight Helmet":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Silicon","qty":30}],"ore":null},"Xanthule Flight Suit":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Silicon","qty":60}],"ore":null},"Zenith Laser Sniper Rifle":{"src":"Craftbar (Bauplan)","n_offers":1,"blueprint":[{"name":"Taranite","qty":60},{"name":"Gold","qty":20},{"name":"Janalite","qty":1},{"name":"Sadaryx","qty":1}],"ore":null}},"src_order":["Wikelo/Waehrung","Mining/Erz","Creature/Loot","Salvage/Vanduul","CZ/Tech-Loot","Missions-/Beute-Item","Craftbar (Bauplan)","Item/Sonstiges"],"src_meta":{"Wikelo/Waehrung":{"unit":4,"hint":"Wikelo-Favor/Scrip – per Tausch (siehe unten)"},"Mining/Erz":{"unit":1,"hint":"Mining / teils kaufbar (Preis siehe unten)"},"Creature/Loot":{"unit":2,"hint":"Creature-Jagd (Valakkar / Kopion / Yormandi)"},"Salvage/Vanduul":{"unit":2,"hint":"Salvage / Vanduul-Gebiete"},"CZ/Tech-Loot":{"unit":3,"hint":"Contested Zones / Tech-Loot (PvP-Risiko)"},"Missions-/Beute-Item":{"unit":3,"hint":"Missionsbelohnung / seltener Loot"},"Craftbar (Bauplan)":{"unit":2,"hint":"Craften – Rezept siehe unten"},"Item/Sonstiges":{"unit":1,"hint":"Kauf / Loot"}},"cat_order":{"Schiff":0,"Fahrzeug":1,"Waffe":2,"Ruestung":3,"Ausruestung":4,"Freischaltung":5},"saved_inv":{}}</script>
+<script>
+const DATA = JSON.parse(document.getElementById('wikelo-data').textContent);
+const LS_INV = 'sc_wikelo_inv_v1', LS_PREF = 'sc_wikelo_pref_v1';
+
+// ---- state ----
+let inv = {};
+let pref = {mode:'aufwand', myRep:0, onlyRep:false, showRetired:false, onlyHave:false};
+let lsInv = null;
+try{ lsInv = JSON.parse(localStorage.getItem(LS_INV)||'null'); }catch(e){}
+if(lsInv && Object.keys(lsInv).length){ inv = lsInv; }
+else { inv = Object.assign({}, DATA.saved_inv||{}); }   // Vorbelegung aus SC_Wikelo_Bestand.json
+try{ Object.assign(pref, JSON.parse(localStorage.getItem(LS_PREF)||'{}')||{}); }catch(e){}
+
+function saveInv(){ try{localStorage.setItem(LS_INV, JSON.stringify(inv));}catch(e){} }
+function savePref(){ try{localStorage.setItem(LS_PREF, JSON.stringify(pref));}catch(e){} }
+function have(n){ return inv[n]||0; }
+function setHave(n,q){ q=Math.max(0,Math.round(q||0)); if(q<=0) delete inv[n]; else inv[n]=q; saveInv(); rerenderAll(); }
+
+// ---- helpers ----
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmt(n){ return Math.round(n).toLocaleString('de-DE'); }
+function unitOf(name){ const info=DATA.ingredients[name]||{}; return (DATA.src_meta[info.src]||{}).unit||2; }
+// Aufwand (mengengewichtet) -> 1..5 Sterne, log-gestaucht (kalibriert: Wikelo Arrive≈1★, Idris≈5★)
+function starsOf(raw){ if(raw<=0) return 0; const l=Math.log10(raw);
+  return l<1?1 : l<1.6?2 : l<2.1?3 : l<2.7?4 : 5; }
+
+// offer analysis
+function analyze(o){
+  let missTypes=0, missQty=0, missing=[], effort=0;
+  for(const it of o.recipe){
+    const need=it.qty, has=have(it.name), gap=Math.max(0,need-has);
+    if(gap>0){ missTypes++; missQty+=gap; effort+=gap*unitOf(it.name); missing.push({name:it.name, gap, need, has}); }
+  }
+  const band = missTypes>=3?3:missTypes;
+  const stars = starsOf(effort);                          // Gesamt-Beschaffungsaufwand des Fehlenden
+  const repOk = (pref.myRep||0) >= (o.rep_req||0);
+  return {missTypes, missQty, missing, band, effort, stars, repOk};
+}
+
+const BANDS=[
+  {k:0,label:'Sofort verfügbar',dot:'var(--ok)'},
+  {k:1,label:'1 Zutat fehlt',dot:'var(--gold2)'},
+  {k:2,label:'2 Zutaten fehlen',dot:'#e69138'},
+  {k:3,label:'3+ Zutaten fehlen',dot:'#c0392b'},
+];
+
+// ---- inventory panel ----
+function renderRes(){
+  const q=($('#resSearch').value||'').toLowerCase();
+  const onlyHave=pref.onlyHave;
+  const groups={};
+  for(const [nm,info] of Object.entries(DATA.ingredients)){
+    if(q && !nm.toLowerCase().includes(q)) continue;
+    if(onlyHave && !have(nm)) continue;
+    (groups[info.src]=groups[info.src]||[]).push([nm,info]);
+  }
+  let html='';
+  for(const src of DATA.src_order){
+    const arr=groups[src]; if(!arr||!arr.length) continue;
+    html+=`<div class="grp">${esc(src)}</div>`;
+    for(const [nm,info] of arr){
+      const v=have(nm);
+      html+=`<div class="res ${v?'have':''}" data-n="${esc(nm)}">
+        <div class="qbox">
+          <button class="qbtn" data-a="dec">−</button>
+          <span class="qval ${v?'':'z'}">${v}</span>
+          <button class="qbtn" data-a="inc">+</button>
+        </div>
+        <div class="nm">${esc(nm)}<small>in ${info.n_offers} Angebot${info.n_offers>1?'en':''}${info.blueprint?' · craftbar':''}${info.ore?' · Erz':''}</small></div>
+      </div>`;
+    }
+  }
+  $('#resList').innerHTML = html || '<div class="empty">Keine Ressource gefunden.</div>';
+  const hc=Object.keys(inv).length;
+  $('#haveCount').textContent = hc? `${hc} markiert` : '';
+}
+
+// ---- procurement hint for a missing ingredient ----
+function hintFor(name){
+  const info=DATA.ingredients[name]||{};
+  const meta=DATA.src_meta[info.src]||{};
+  let extra='';
+  // Bauplan
+  if(info.blueprint){
+    extra = '🔨 '+info.blueprint.map(c=>`${c.qty}× ${esc(c.name)}`).join(', ');
+  }
+  // Waehrungs-Tausch (z. B. Wikelo Favor)
+  else if(DATA.currency_map[name]){
+    const opts=DATA.currency_map[name].map(o=> o.recipe_raw
+        ? `<span class="opt">${esc(o.recipe_raw)}</span>`
+        : `<span class="opt">${esc(o.mission||'Sonderauftrag')}</span>`).join('');
+    extra = 'Tausch: '+opts;
+  }
+  // Erz-Preis / Kaufort
+  else if(info.ore && DATA.prices[info.ore]){
+    const p=DATA.prices[info.ore];
+    if(p.buy) extra = `kaufbar ≈ ${fmt(p.buy.price)} aUEC/SCU bei ${esc(p.buy.loc)}`;
+    else if(p.sell) extra = `abbaubar · Verkaufswert ≈ ${fmt(p.sell.price)} aUEC/SCU (${esc(p.sell.loc)})`;
+  }
+  return {src:info.src, hint:meta.hint||'', extra};
+}
+
+// ---- offers ----
+function offerCard(o){
+  const a=analyze(o);
+  const retired = o.status!=='active';
+  const locked = !a.repOk;
+  const chips = o.recipe.map(it=>{
+    const need=it.qty, has=have(it.name), ok=has>=need;
+    const info=DATA.ingredients[it.name]||{};
+    const cr = info.blueprint? '<span class="cr" title="craftbar">🔨</span>':'';
+    return `<span class="chip ${ok?'ok':'miss'}" data-n="${esc(it.name)}" ${ok?'':'data-miss="1"'}>
+      <span class="q">${need}×</span>${esc(it.name)}${cr}${ok?'':` <small>(${has}/${need})</small>`}</span>`;
+  }).join('');
+  // Details: alle fehlenden Zutaten mit Beschaffungs-Hinweis
+  let detHtml='';
+  if(a.missing.length){
+    detHtml = `<div class="det">`+ a.missing.map(m=>{
+        const h=hintFor(m.name);
+        return `<div class="row"><span class="src">${esc(h.src)}</span>
+          <b>${m.gap}× ${esc(m.name)}</b>${m.has?` <span class="sub">(hast ${m.has}/${m.need})</span>`:''}
+          <div class="sub">${h.extra||esc(h.hint)}</div></div>`;
+      }).join('') + `</div>`;
+  }
+  // Aufwand-Sterne (1..5) – mengengewichtet
+  const eff = a.stars;
+  const dots = a.missTypes? `<span class="effort" title="Gesamt-Beschaffungsaufwand des Fehlenden (Menge × Quelle)">Aufwand `+
+    [1,2,3,4,5].map(i=>`<i class="edot ${i<=eff?'on':''}"></i>`).join('')+`</span>` : '';
+  const repBadge = o.rep_req? `<span class="badge ${locked?'lock':'rep'}">Ruf ${o.rep_req}${locked?' ⚠':''}</span>`:'';
+  const rewBadge = o.rep_rew? `<span class="badge rep">+${o.rep_rew} Ruf</span>`:'';
+  const retBadge = retired? `<span class="badge ret">${esc(o.status_de)}</span>`:'';
+  return `<div class="card b${a.band} ${locked?'locked':''}" data-id="${o.id}">
+    <h3>${esc(o.reward||o.mission)}</h3>
+    <span class="cat">${esc(o.art)}</span>
+    ${o.mission&&o.mission!==o.reward?`<div class="mission">„${esc(o.mission)}"</div>`:''}
+    <div class="chips">${chips}</div>
+    ${detHtml}
+    <div class="foot">
+      <span>${a.missing.length?`<span class="tog">Fehlendes beschaffen ▾</span>`:'<span style="color:var(--ok)">✓ komplett</span>'}</span>
+      <span style="display:flex;gap:8px;align-items:center">${dots} ${retBadge} ${rewBadge} ${repBadge}</span>
+    </div>
+  </div>`;
+}
+
+function passFilter(o,a){
+  if(o.status!=='active' && !pref.showRetired) return false;
+  if(pref.onlyRep && !a.repOk) return false;
+  const q=($('#offerSearch').value||'').toLowerCase();
+  if(q){
+    const hay=(o.reward+' '+o.mission+' '+o.art+' '+o.recipe.map(r=>r.name).join(' ')).toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+function sortCmp(p,q){
+  const A=[p.a.band, p.a.repOk?0:1, p.a.effort, p.a.missQty, p.o.reward.toLowerCase()];
+  const B=[q.a.band, q.a.repOk?0:1, q.a.effort, q.a.missQty, q.o.reward.toLowerCase()];
+  for(let i=0;i<A.length;i++){ if(A[i]<B[i])return -1; if(A[i]>B[i])return 1; } return 0;
+}
+
+function renderOffers(){
+  const rows=DATA.offers.map(o=>({o,a:analyze(o)})).filter(x=>passFilter(x.o,x.a));
+  let html='';
+  if(pref.mode==='aufwand'){
+    for(const b of BANDS){
+      const items=rows.filter(x=>x.a.band===b.k).sort(sortCmp);
+      if(!items.length) continue;
+      html+=`<div class="band"><div class="bh"><span class="dot" style="background:${b.dot}"></span>
+        <b>${b.label}</b><span class="cnt">${items.length} Angebot${items.length>1?'e':''}</span></div>
+        <div class="cards">${items.map(x=>offerCard(x.o)).join('')}</div></div>`;
+    }
+  } else {
+    const cats=Object.keys(DATA.cat_order).sort((a,b)=>DATA.cat_order[a]-DATA.cat_order[b]);
+    for(const cat of cats){
+      const items=rows.filter(x=>x.o.art===cat).sort(sortCmp);
+      if(!items.length) continue;
+      html+=`<div class="band"><div class="bh"><span class="dot" style="background:var(--navy2)"></span>
+        <b>${esc(cat)}</b><span class="cnt">${items.length}</span></div>
+        <div class="cards">${items.map(x=>offerCard(x.o)).join('')}</div></div>`;
+    }
+  }
+  $('#offers').innerHTML = html || '<div class="empty">Keine Angebote für diese Filter.</div>';
+}
+
+function rerenderAll(){ renderRes(); renderOffers(); }
+
+// ---- Schnell-Eingabe (Kommando-Leiste) ----
+let quickMatches=[], quickIndex=0;
+function parseQuick(raw){
+  const m=raw.match(/^(.*?)\s+([+]?\d+)\s*$/);
+  return m ? {query:m[1].trim(), num:m[2]} : {query:raw.trim(), num:null};
+}
+function qMatch(q){
+  q=q.toLowerCase().trim(); if(!q) return [];
+  const toks=q.split(/\s+/), out=[];
+  for(const name of Object.keys(DATA.ingredients)){
+    const ln=name.toLowerCase();
+    if(!toks.every(t=>ln.includes(t))) continue;
+    let score=0;
+    if(ln.startsWith(q)) score-=100;
+    const idx=ln.indexOf(q); if(idx>=0) score-=(50-Math.min(idx,49));
+    score-=(DATA.ingredients[name].n_offers||0)*0.2;   // häufige Zutaten bevorzugen
+    score+=ln.length*0.02;
+    out.push({name,score});
+  }
+  out.sort((a,b)=>a.score-b.score);
+  return out.slice(0,8);
+}
+function renderQuick(){
+  const raw=$('#quickAdd').value; const {query,num}=parseQuick(raw);
+  quickMatches=qMatch(query);
+  if(quickIndex>=quickMatches.length) quickIndex=0;
+  const box=$('#quickSug');
+  if(!raw.trim() || !quickMatches.length){ box.classList.remove('open'); box.innerHTML=''; return; }
+  box.innerHTML=quickMatches.map((m,i)=>{
+    const cur=have(m.name), info=DATA.ingredients[m.name]||{};
+    let tgt=''; if(num!=null){ const n=+num.replace('+',''); tgt = num[0]==='+'?`→ ${cur+n}`:`→ ${n}`; }
+    return `<div class="s ${i===quickIndex?'act':''}" data-i="${i}">
+      <span><span class="src2">${esc(info.src||'')}</span> ${esc(m.name)} <small>(${cur})</small></span>
+      <span class="sq">${tgt}</span></div>`;
+  }).join('');
+  box.classList.add('open');
+}
+function applyQuick(i){
+  const idx=(i!=null)?i:quickIndex, m=quickMatches[idx]; if(!m) return;
+  const {num}=parseQuick($('#quickAdd').value);
+  if(num==null){ setHave(m.name, have(m.name)+1); toast('+1 '+m.name); }
+  else if(num[0]==='+'){ const n=+num.slice(1)||0; setHave(m.name, have(m.name)+n); toast(m.name+' +'+n); }
+  else { const n=+num||0; setHave(m.name, n); toast(m.name+' = '+n); }
+  $('#quickAdd').value=''; quickIndex=0; renderQuick(); $('#quickAdd').focus();
+}
+
+// ---- Schrittweite per Modifier: Klick +1 · Shift +10 · Strg +50 · Alt +100 ----
+function stepOf(e){ if(e.altKey) return 100; if(e.ctrlKey||e.metaKey) return 50; if(e.shiftKey) return 10; return 1; }
+
+// ---- events: inventory ----
+$('#resList').addEventListener('click', e=>{
+  const row=e.target.closest('.res'); if(!row) return;
+  const n=row.dataset.n, s=stepOf(e);
+  const btn=e.target.closest('.qbtn');
+  if(btn){ setHave(n, have(n)+(btn.dataset.a==='inc'?s:-s)); return; }
+  // Zeilenklick: mit Modifier +Schritt, sonst an/aus (0<->1)
+  if(s>1) setHave(n, have(n)+s);
+  else setHave(n, have(n)>0?0:1);
+});
+$('#resList').addEventListener('contextmenu', e=>{
+  const row=e.target.closest('.res'); if(!row) return;
+  e.preventDefault(); setHave(row.dataset.n, have(row.dataset.n)-stepOf(e));
+});
+$('#resList').addEventListener('wheel', e=>{
+  const row=e.target.closest('.res'); if(!row) return;
+  e.preventDefault(); const s=stepOf(e); setHave(row.dataset.n, have(row.dataset.n)+(e.deltaY<0?s:-s));
+},{passive:false});
+
+// ---- events: offers ----
+$('#offers').addEventListener('click', e=>{
+  const tog=e.target.closest('.tog');
+  if(tog){ const d=tog.closest('.card').querySelector('.det'); if(d){ d.classList.toggle('open');
+    tog.textContent = d.classList.contains('open')?'Fehlendes beschaffen ▴':'Fehlendes beschaffen ▾'; } return; }
+  const chip=e.target.closest('.chip[data-miss]');
+  if(chip){ const s=stepOf(e); setHave(chip.dataset.n, have(chip.dataset.n)+s); toast('+'+s+' '+chip.dataset.n); }
+});
+
+// ---- events: filters ----
+// ---- events: Schnell-Eingabe ----
+$('#quickAdd').addEventListener('input', renderQuick);
+$('#quickAdd').addEventListener('keydown', e=>{
+  if(e.key==='ArrowDown'){ e.preventDefault(); quickIndex=Math.min(quickIndex+1, quickMatches.length-1); renderQuick(); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); quickIndex=Math.max(quickIndex-1, 0); renderQuick(); }
+  else if(e.key==='Enter'){ e.preventDefault(); applyQuick(); }
+  else if(e.key==='Escape'){ $('#quickAdd').value=''; renderQuick(); }
+});
+$('#quickSug').addEventListener('mousedown', e=>{ const s=e.target.closest('.s'); if(s){ e.preventDefault(); applyQuick(+s.dataset.i); } });
+document.addEventListener('click', e=>{ if(!e.target.closest('.qadd')) $('#quickSug').classList.remove('open'); });
+
+$('#resSearch').addEventListener('input', renderRes);
+$('#offerSearch').addEventListener('input', renderOffers);
+$('#onlyHave').addEventListener('change', e=>{pref.onlyHave=e.target.checked; savePref(); renderRes();});
+$('#myRep').addEventListener('input', e=>{pref.myRep=+e.target.value||0; savePref(); renderOffers();});
+$('#onlyRep').addEventListener('change', e=>{pref.onlyRep=e.target.checked; savePref(); renderOffers();});
+$('#showRetired').addEventListener('change', e=>{pref.showRetired=e.target.checked; savePref(); renderOffers();});
+$('#modeSeg').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-mode]'); if(!b) return;
+  pref.mode=b.dataset.mode; savePref();
+  $$('#modeSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderOffers();
+});
+
+// ---- Bestand speichern / laden (Datei) ----
+$('#btnSave').addEventListener('click', ()=>{
+  const blob=new Blob([JSON.stringify(inv,null,1)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='SC_Wikelo_Bestand.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('Bestand als SC_Wikelo_Bestand.json gespeichert');
+});
+$('#btnLoad').addEventListener('click', ()=> $('#fileInput').click());
+$('#fileInput').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{
+    const o=JSON.parse(rd.result); if(typeof o!=='object'||Array.isArray(o)) throw 0;
+    inv={}; for(const [k,v] of Object.entries(o)){ const q=Math.max(0,Math.round(+v||0)); if(q>0) inv[k]=q; }
+    saveInv(); rerenderAll(); toast('Bestand geladen: '+Object.keys(inv).length+' Ressourcen');
+  }catch(err){ toast('Ungültige Datei (kein Bestand-JSON)'); } };
+  rd.readAsText(f); e.target.value='';
+});
+$('#btnReset').addEventListener('click', ()=>{ if(confirm('Wirklich den ganzen Bestand leeren?')){ inv={}; saveInv(); rerenderAll(); } });
+
+// ---- init ----
+$('#meta').textContent = `v${DATA.meta.version} · Patch ${DATA.meta.patch} · Daten ${DATA.meta.data_updated} · ${DATA.meta.n_offers} Angebote · ${DATA.meta.n_ingredients} Ressourcen · gebaut ${DATA.meta.generated}`;
+$('#myRep').value=pref.myRep||0; $('#onlyRep').checked=!!pref.onlyRep;
+$('#showRetired').checked=!!pref.showRetired; $('#onlyHave').checked=!!pref.onlyHave;
+$$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.mode===pref.mode));
+if(!lsInv && Object.keys(inv).length) toast('Bestand aus SC_Wikelo_Bestand.json vorgeladen');
+rerenderAll();
+</script>
+</body>
+</html>
