@@ -33,31 +33,15 @@ try:
 except Exception:
     VERSION = "0.0.0"
 
-CAT_DE = {"ship": "Schiff", "vehicle": "Fahrzeug", "weapon": "Waffe", "armor": "Ruestung",
-          "gear": "Ausruestung", "intro": "Freischaltung"}
-CAT_ORDER = {"Schiff": 0, "Fahrzeug": 1, "Waffe": 2, "Ruestung": 3, "Ausruestung": 4, "Freischaltung": 5}
-STATUS_DE = {"active": "aktiv", "retired-loot": "zurueckgezogen (Loot)", "retired-store": "zurueckgezogen (Store)"}
 PAT = re.compile(r'^\s*(\d+)\s*x\s+(.*\S)\s*$')
 
-# Beschaffungs-Quellen: "unit" = Aufwand PRO STUECK (Zeit/Kosten je 1 Einheit) + Kurz-Hinweis.
-# Gesamt-Aufwand eines Angebots = Summe(fehlende Menge x unit); danach log-gestaucht auf 1..5 Sterne.
-SRC_META = {
-    "Wikelo/Waehrung":      {"unit": 4, "hint": "Wikelo-Favor/Scrip \u2013 per Tausch (siehe unten)"},
-    "Mining/Erz":           {"unit": 1, "hint": "Mining / teils kaufbar (Preis siehe unten)"},
-    "Creature/Loot":        {"unit": 2, "hint": "Creature-Jagd (Valakkar / Kopion / Yormandi)"},
-    "Salvage/Vanduul":      {"unit": 2, "hint": "Salvage / Vanduul-Gebiete"},
-    "CZ/Tech-Loot":         {"unit": 3, "hint": "Contested Zones / Tech-Loot (PvP-Risiko)"},
-    "Missions-/Beute-Item": {"unit": 3, "hint": "Missionsbelohnung / seltener Loot"},
-    "Craftbar (Bauplan)":   {"unit": 2, "hint": "Craften \u2013 Rezept siehe unten"},
-    "Item/Sonstiges":       {"unit": 1, "hint": "Kauf / Loot"},
-}
-SRC_ORDER = ["Wikelo/Waehrung", "Mining/Erz", "Creature/Loot", "Salvage/Vanduul",
-             "CZ/Tech-Loot", "Missions-/Beute-Item", "Craftbar (Bauplan)", "Item/Sonstiges"]
+# Die Aufbereitungslogik (Kategorien, Quellen-Klassifikation, Angebote, Waehrungs-Tausch,
+# Aufwand-Gewichte) lebt jetzt EINMALIG im Browser (transform() im HTML) \u2013 damit der
+# In-App-Refresh dieselbe Logik nutzt wie der Offline-Build. Python buendelt nur die Rohdaten.
 
-# Erz-Zutaten -> star-head Commodity-Name (Suffixe (Ore)/(Pure) normalisiert)
+# Erz-Zutaten -> Commodity-Basisname (Suffixe (Ore)/(Pure) normalisiert) fuer Preis-Lookup
 def ore_commodity(name):
-    n = name.strip()
-    base = re.sub(r'\s*\((Ore|Pure)\)$', '', n).strip()
+    base = re.sub(r'\s*\((Ore|Pure)\)$', '', str(name).strip()).strip()
     if base in ("Carinite", "Jaclium", "Saldynium", "Sadaryx"):
         return base
     return None
@@ -116,71 +100,48 @@ def parse_recipe(recipe):
     return out
 
 
-def name_of(rec):
-    return (rec.get("reward") or rec.get("name") or rec.get("mission_name") or "").strip()
-
-
-def classify(name, craftable):
-    """Grobe Beschaffungs-Quelle je Zutat (Heuristik ueber den Namen)."""
-    n = name.lower()
-    if name in ("Wikelo Favor", "Polaris Bit", "MG Scrip", "Council Scrip"):
-        return "Wikelo/Waehrung"
-    if any(w in n for w in ["(ore)", "(pure)", "saldynium", "jaclium", "carinite", "sadaryx", "quantanium fuel"]):
-        return "Mining/Erz"
-    if any(w in n for w in ["valakkar", "kopion", "yormandi", "grazer", "fungus"]):
-        return "Creature/Loot"
-    if any(w in n for w in ["medal", "marker", "badge", "artifact fragment", "metamaterial", "test #"]):
-        return "Missions-/Beute-Item"
-    if "vanduul" in n:
-        return "Salvage/Vanduul"
-    if any(w in n for w in ["rcmbnt", "comp-board", "secure drive", "drive"]):
-        return "CZ/Tech-Loot"
-    if craftable:
-        return "Craftbar (Bauplan)"
-    return "Item/Sonstiges"
-
-
-def loc(shop, ort):
-    shop = shop or ""; ort = ort or ""
-    return f"{shop} ({ort})" if ort and ort != shop else shop
-
-
-# ----------------------------------------------------------------- Erz-Preise
-def fetch_ore_prices(need_commodities):
-    """Best-Kauf (guenstigster mit Bestand) + Best-Verkauf je Commodity-Name."""
+# ----------------------------------------------------------------- Erz-Preise (UEX)
+def fetch_prices_uex(need_bases):
+    """Erz-Preise (aUEC/SCU) je Commodity-Basisname aus der UEX-API.
+    UEX liefert flache price_buy/price_sell (kein Terminal/Ort) -> loc bleibt None."""
     out = {}
-    try:
-        com = get_json_url("https://api.star-head.de/commodity")
-        shops = get_json_url("https://api.star-head.de/shop")
-    except Exception as e:
-        print("  Hinweis: Erz-Preise nicht erreichbar -> ohne Preis/Kaufort.", e)
+    if not need_bases:
         return out
-    shopmap = {s["id"]: loc(s.get("name", ""), (s.get("parent") or {}).get("name", "")) for s in shops}
-    ids = {c["name"]: c["id"] for c in com if c["name"] in need_commodities}
-    for nm, cid in ids.items():
-        rec = {"buy": None, "sell": None}
-        try:
-            buys = get_json_url(f"https://api.star-head.de/shopitem/price?commodityId={cid}&tradeType=Buy") or []
-            sells = get_json_url(f"https://api.star-head.de/shopitem/price?commodityId={cid}&tradeType=Sell") or []
-        except Exception:
-            buys, sells = [], []
-        def mk(x):
-            return {"price": round((x.get("pricePerItem") or 0) * 100, 0),
-                    "loc": shopmap.get((x.get("shop") or {}).get("id"), (x.get("shop") or {}).get("name", "")),
-                    "inv": x.get("maxInventoryScu")}
-        bpos = [mk(x) for x in buys if (x.get("pricePerItem") or 0) > 0]
-        spos = [mk(x) for x in sells if (x.get("pricePerItem") or 0) > 0]
-        if bpos:
-            stock = [b for b in bpos if (b["inv"] or 0) > 0]
-            rec["buy"] = min(stock or bpos, key=lambda b: b["price"])
-        if spos:
-            rec["sell"] = max(spos, key=lambda s: s["price"])
-        out[nm] = rec
+    try:
+        res = get_json_url("https://api.uexcorp.space/2.0/commodities")
+    except Exception as e:
+        print("  Hinweis: UEX-Preise nicht erreichbar -> ohne Erz-Preise.", e)
+        return out
+    data = res.get("data") if isinstance(res, dict) else res
+    for c in (data or []):
+        nm = (c.get("name") or "").strip()
+        base = re.sub(r'\s*\((Ore|Pure|Raw)\)$', '', nm).strip()
+        if base not in need_bases:
+            continue
+        pb = c.get("price_buy") or 0
+        ps = c.get("price_sell") or 0
+        entry = out.get(base, {"buy": None, "sell": None, "src": "uex"})
+        if pb and (entry["buy"] is None or pb < entry["buy"]["price"]):
+            entry["buy"] = {"price": round(pb), "loc": None}
+        if ps and (entry["sell"] is None or ps > entry["sell"]["price"]):
+            entry["sell"] = {"price": round(ps), "loc": None}
+        out[base] = entry
     return out
 
 
-# ----------------------------------------------------------------- Datenaufbau
-def build_data():
+# ----------------------------------------------------------------- Rohdaten buendeln
+def recipe_names(recipe):
+    """Nur die Zutat-Namen aus einem Rezept-String (fuer Bauplan-Filter)."""
+    out = []
+    for part in str(recipe).split(";"):
+        part = part.strip()
+        if not part: continue
+        m = PAT.match(part)
+        out.append(m.group(2) if m else part)
+    return out
+
+
+def build_raw():
     client = SiteClient(HOST)
     print("Lade Wikelo-Daten ...")
     try:
@@ -191,105 +152,67 @@ def build_data():
         netzfehler_exit("seeknd.github.io/Wikelo", f"HTTP {status}")
     d = json.loads(body.decode("utf-8"))
     client.close()
-
     allrecs = list(d["ships"]) + list(d["items"]) + [d["intro_mission"]]
     print(f"  {len(d['ships'])} Schiffe/Fahrzeuge, {len(d['items'])} Items.")
 
-    # Baupläne (fuer craftbare Zutaten)
+    # Zutat-Namen (fuer Bauplan-Filter + Erz-Bedarf)
+    ingredient_names = set()
+    for rec in allrecs:
+        for nm in recipe_names(rec.get("recipe", "")):
+            ingredient_names.add(nm)
+
+    # Baupläne: nur die, deren Name eine Wikelo-Zutat ist (haelt die Datei klein)
     print("Lade Bauplan-Rezepte (star-head.de) ...")
-    bp_map = {}
+    blueprints = []
     try:
         bp = get_json_url("https://api.star-head.de/blueprint")
         for b in bp:
             nm = b.get("name", "")
+            if nm not in ingredient_names:
+                continue
             costs = []
             for c in (b.get("costs") or []):
                 rn = (c.get("commodity") or {}).get("name")
                 if not rn: continue
                 costs.append({"name": rn, "qty": c.get("quantity") or 0})
-            if nm and costs:
-                bp_map[nm] = costs
-        print(f"  {len(bp_map)} Baupläne mit Rezept geladen.")
+            if costs:
+                blueprints.append({"name": nm, "costs": costs})
+        print(f"  {len(blueprints)} passende Baupläne.")
     except Exception as e:
-        print("  Hinweis: Baupläne nicht erreichbar -> craftbare Zutaten ohne Unterrezept.", e)
+        print("  Hinweis: Baupläne nicht erreichbar.", e)
 
-    # Angebote
-    offers = []
-    for rec in allrecs:
-        art = CAT_DE.get(rec.get("category", ""), rec.get("category", ""))
-        offers.append({
-            "id": rec.get("id", ""),
-            "reward": name_of(rec),
-            "art": art,
-            "mission": rec.get("mission_name", "").strip(),
-            "recipe": parse_recipe(rec.get("recipe", "")),
-            "rep_req": rec.get("reputation_required", 0) or 0,
-            "rep_rew": rec.get("reputation_reward", 0) or 0,
-            "status": rec.get("status", "active"),
-            "status_de": STATUS_DE.get(rec.get("status", ""), rec.get("status", "")),
-        })
-    offers.sort(key=lambda o: (CAT_ORDER.get(o["art"], 9), o["reward"].lower()))
-
-    # Favor-/Waehrungs-Tausch  -> Map  Zielwaehrung -> [Tausch-Optionen]
-    currency_map = {}
-    for c in d.get("currency_exchanges", []):
-        rew = (c.get("reward") or "").strip()
-        if not rew: continue
-        currency_map.setdefault(rew, []).append({
-            "recipe": parse_recipe(c.get("recipe", "")),
-            "recipe_raw": (c.get("recipe") or "").strip(),
-            "mission": c.get("mission_name", ""),
-        })
-
-    # Zutaten-Katalog: Häufigkeit + Quelle + evtl. Bauplan
-    freq = {}
-    for o in offers:
-        for it in o["recipe"]:
-            freq[it["name"]] = freq.get(it["name"], 0) + 1
-    ingredients = {}
-    need_ore = set()
-    for nm in sorted(freq, key=lambda n: (-freq[n], n.lower())):
-        craftable = nm in bp_map
-        oc = ore_commodity(nm)
-        if oc: need_ore.add(oc)
-        ingredients[nm] = {
-            "src": classify(nm, craftable),
-            "n_offers": freq[nm],
-            "blueprint": bp_map.get(nm),
-            "ore": oc,          # star-head Commodity-Name (fuer Preis-Lookup) oder None
-        }
-
-    # Erz-Preise
-    print("Lade Erz-Preise (star-head.de) ...")
-    prices = fetch_ore_prices(need_ore)
+    # Erz-Preise (UEX)
+    print("Lade Erz-Preise (uexcorp.space) ...")
+    need_ore = {oc for nm in ingredient_names if (oc := ore_commodity(nm))}
+    prices = fetch_prices_uex(need_ore)
     print(f"  Preise fuer {sum(1 for v in prices.values() if v.get('buy') or v.get('sell'))} Erz(e).")
 
-    # Gespeicherten Bestand (falls vorhanden) als Vorbelegung einbetten
+    # Gespeicherten Bestand (falls vorhanden) als Vorbelegung
     saved_inv = {}
     if BESTAND.exists():
         try:
-            raw = json.loads(BESTAND.read_text(encoding="utf-8"))
-            for k, v in raw.items():
+            b = json.loads(BESTAND.read_text(encoding="utf-8"))
+            for k, v in b.items():
                 q = max(0, int(round(float(v))))
                 if q > 0: saved_inv[k] = q
             print(f"  Bestand vorgeladen aus {BESTAND.name}: {len(saved_inv)} Ressourcen.")
         except Exception as e:
-            print("  Hinweis: SC_Wikelo_Bestand.json nicht lesbar -> ohne Vorbelegung.", e)
+            print("  Hinweis: SC_Wikelo_Bestand.json nicht lesbar.", e)
 
     return {
-        "meta": {"version": VERSION,
-                 "patch": d.get("meta", {}).get("current_patch", "?"),
-                 "data_updated": d.get("meta", {}).get("data_updated", "?"),
-                 "generated": STAMP,
-                 "n_offers": len(offers),
-                 "n_ingredients": len(ingredients)},
-        "offers": offers,
-        "currency_map": currency_map,
+        "schema": 2,
+        "version": VERSION,
+        "generated": STAMP,
+        "source": "build",       # wird beim In-App-Refresh ueberschrieben
+        "wikelo": {
+            "meta": d.get("meta", {}),
+            "ships": d.get("ships", []),
+            "items": d.get("items", []),
+            "intro_mission": d.get("intro_mission", {}),
+            "currency_exchanges": d.get("currency_exchanges", []),
+        },
+        "blueprints": blueprints,
         "prices": prices,
-        "ingredients": ingredients,
-        "src_order": SRC_ORDER,
-        "src_meta": SRC_META,
-        "cat_order": CAT_ORDER,
         "saved_inv": saved_inv,
     }
 
@@ -484,10 +407,92 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
 
 <div class="toast" id="toast"></div>
 
-<script id="wikelo-data" type="application/json">/*__DATA__*/</script>
+<script id="wikelo-raw" type="application/json">/*__RAW__*/</script>
 <script>
-const DATA = JSON.parse(document.getElementById('wikelo-data').textContent);
-const LS_INV = 'sc_wikelo_inv_v1', LS_PREF = 'sc_wikelo_pref_v1';
+const LS_INV = 'sc_wikelo_inv_v1', LS_PREF = 'sc_wikelo_pref_v1', LS_RAW = 'sc_wikelo_raw_v2';
+const RAW_BAKED = JSON.parse(document.getElementById('wikelo-raw').textContent);
+
+// ===== Aufbereitungslogik – EINZIGE Quelle der Wahrheit (Offline-Build wie In-App-Refresh) =====
+const CAT_DE = {ship:'Schiff',vehicle:'Fahrzeug',weapon:'Waffe',armor:'Ruestung',gear:'Ausruestung',intro:'Freischaltung'};
+const CAT_ORDER = {Schiff:0,Fahrzeug:1,Waffe:2,Ruestung:3,Ausruestung:4,Freischaltung:5};
+const STATUS_DE = {active:'aktiv','retired-loot':'zurueckgezogen (Loot)','retired-store':'zurueckgezogen (Store)'};
+const SRC_META = {
+  'Wikelo/Waehrung':      {unit:4, hint:'Wikelo-Favor/Scrip – per Tausch (siehe unten)'},
+  'Mining/Erz':           {unit:1, hint:'Mining / teils kaufbar (Preis siehe unten)'},
+  'Creature/Loot':        {unit:2, hint:'Creature-Jagd (Valakkar / Kopion / Yormandi)'},
+  'Salvage/Vanduul':      {unit:2, hint:'Salvage / Vanduul-Gebiete'},
+  'CZ/Tech-Loot':         {unit:3, hint:'Contested Zones / Tech-Loot (PvP-Risiko)'},
+  'Missions-/Beute-Item': {unit:3, hint:'Missionsbelohnung / seltener Loot'},
+  'Craftbar (Bauplan)':   {unit:2, hint:'Craften – Rezept siehe unten'},
+  'Item/Sonstiges':       {unit:1, hint:'Kauf / Loot'},
+};
+const SRC_ORDER = ['Wikelo/Waehrung','Mining/Erz','Creature/Loot','Salvage/Vanduul','CZ/Tech-Loot','Missions-/Beute-Item','Craftbar (Bauplan)','Item/Sonstiges'];
+const RECIPE_RE = /^\s*(\d+)\s*x\s+(.*\S)\s*$/;
+const cmp = (a,b)=> a<b?-1:a>b?1:0;   // code-point-Vergleich wie Python (kein localeCompare)
+
+function parseRecipe(s){
+  const out=[];
+  for(let part of String(s==null?'':s).split(';')){
+    part=part.trim(); if(!part) continue;
+    const m=part.match(RECIPE_RE);
+    out.push(m ? {name:m[2], qty:parseInt(m[1],10)} : {name:part, qty:1});
+  }
+  return out;
+}
+function nameOf(rec){ return String(rec.reward||rec.name||rec.mission_name||'').trim(); }
+function oreCommodity(name){
+  const base=String(name).trim().replace(/\s*\((Ore|Pure)\)$/,'').trim();
+  return ['Carinite','Jaclium','Saldynium','Sadaryx'].includes(base)?base:null;
+}
+function classify(name, craftable){
+  const n=String(name).toLowerCase();
+  if(['Wikelo Favor','Polaris Bit','MG Scrip','Council Scrip'].includes(name)) return 'Wikelo/Waehrung';
+  if(['(ore)','(pure)','saldynium','jaclium','carinite','sadaryx','quantanium fuel'].some(w=>n.includes(w))) return 'Mining/Erz';
+  if(['valakkar','kopion','yormandi','grazer','fungus'].some(w=>n.includes(w))) return 'Creature/Loot';
+  if(['medal','marker','badge','artifact fragment','metamaterial','test #'].some(w=>n.includes(w))) return 'Missions-/Beute-Item';
+  if(n.includes('vanduul')) return 'Salvage/Vanduul';
+  if(['rcmbnt','comp-board','secure drive','drive'].some(w=>n.includes(w))) return 'CZ/Tech-Loot';
+  if(craftable) return 'Craftbar (Bauplan)';
+  return 'Item/Sonstiges';
+}
+function transform(raw){
+  const w = raw.wikelo||{};
+  const allrecs = [...(w.ships||[]), ...(w.items||[]), ...(w.intro_mission?[w.intro_mission]:[])];
+  const bpMap={};
+  for(const b of (raw.blueprints||[])) if(b && b.name && b.costs && b.costs.length) bpMap[b.name]=b.costs;
+  const catRank=a=> (CAT_ORDER[a]!=null?CAT_ORDER[a]:9);
+  const offers = allrecs.map(rec=>({
+    id: rec.id||'', reward: nameOf(rec), art: CAT_DE[rec.category]||rec.category||'',
+    mission: String(rec.mission_name||'').trim(), recipe: parseRecipe(rec.recipe||''),
+    rep_req: rec.reputation_required||0, rep_rew: rec.reputation_reward||0,
+    status: rec.status||'active', status_de: STATUS_DE[rec.status]||rec.status||'',
+  })).sort((a,b)=> (catRank(a.art)-catRank(b.art)) || cmp(a.reward.toLowerCase(), b.reward.toLowerCase()));
+  const currency_map={};
+  for(const c of (w.currency_exchanges||[])){
+    const rew=String(c.reward||'').trim(); if(!rew) continue;
+    (currency_map[rew]=currency_map[rew]||[]).push({recipe:parseRecipe(c.recipe||''), recipe_raw:String(c.recipe||'').trim(), mission:c.mission_name||''});
+  }
+  const freq={};
+  for(const o of offers) for(const it of o.recipe) freq[it.name]=(freq[it.name]||0)+1;
+  const names=Object.keys(freq).sort((a,b)=> (freq[b]-freq[a]) || cmp(a.toLowerCase(), b.toLowerCase()));
+  const ingredients={};
+  for(const nm of names) ingredients[nm]={ src:classify(nm, nm in bpMap), n_offers:freq[nm], blueprint:bpMap[nm]||null, ore:oreCommodity(nm) };
+  return {
+    meta:{ version:raw.version||'0.0.0', patch:(w.meta||{}).current_patch||'?', data_updated:(w.meta||{}).data_updated||'?',
+           generated:raw.generated||'', source:raw.source||'build', n_offers:offers.length, n_ingredients:names.length },
+    offers, currency_map, prices:raw.prices||{}, ingredients,
+    src_order:SRC_ORDER, src_meta:SRC_META, cat_order:CAT_ORDER, saved_inv:raw.saved_inv||{},
+  };
+}
+
+// Aktive Rohdaten: gecachter Refresh (falls Schema passt) sonst eingebackene Build-Daten
+function loadRaw(){
+  try{ const c=JSON.parse(localStorage.getItem(LS_RAW)||'null');
+    if(c && c.schema===RAW_BAKED.schema && c.wikelo) return c; }catch(e){}
+  return RAW_BAKED;
+}
+let RAW = loadRaw();
+let DATA = transform(RAW);
 
 // ---- state ----
 let inv = {};
@@ -582,9 +587,9 @@ function hintFor(name){
   }
   // Erz-Preis / Kaufort
   else if(info.ore && DATA.prices[info.ore]){
-    const p=DATA.prices[info.ore];
-    if(p.buy) extra = `kaufbar ≈ ${fmt(p.buy.price)} aUEC/SCU bei ${esc(p.buy.loc)}`;
-    else if(p.sell) extra = `abbaubar · Verkaufswert ≈ ${fmt(p.sell.price)} aUEC/SCU (${esc(p.sell.loc)})`;
+    const p=DATA.prices[info.ore], q=p.src==='uex'?'Ø UEX':'Ø Markt';
+    if(p.buy) extra = `kaufbar ≈ ${fmt(p.buy.price)} aUEC/SCU` + (p.buy.loc?` bei ${esc(p.buy.loc)}`:` (${q})`);
+    else if(p.sell) extra = `Verkaufswert ≈ ${fmt(p.sell.price)} aUEC/SCU` + (p.sell.loc?` (${esc(p.sell.loc)})`:` (${q})`);
   }
   return {src:info.src, hint:meta.hint||'', extra};
 }
@@ -811,16 +816,15 @@ rerenderAll();
 
 
 def main():
-    data = build_data()
-    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    raw = build_raw()
+    payload = json.dumps(raw, ensure_ascii=False, separators=(",", ":"))
     payload = payload.replace("</", "<\\/")
-    html = HTML_TEMPLATE.replace("/*__DATA__*/", payload)
+    html = HTML_TEMPLATE.replace("/*__RAW__*/", payload)
     OUTHTML.write_text(html, encoding="utf-8")
-    n_bp = sum(1 for v in data["ingredients"].values() if v["blueprint"])
-    n_pr = sum(1 for v in data["prices"].values() if v.get("buy") or v.get("sell"))
+    n_off = len(raw["wikelo"]["ships"]) + len(raw["wikelo"]["items"]) + 1
+    n_pr = sum(1 for v in raw["prices"].values() if v.get("buy") or v.get("sell"))
     print("gespeichert:", OUTHTML)
-    print(f"  {data['meta']['n_offers']} Angebote, {data['meta']['n_ingredients']} Ressourcen, "
-          f"{n_bp} craftbar, {n_pr} Erz-Preise, {len(data['currency_map'])} Waehrungs-Tausche.")
+    print(f"  {n_off} Angebote, {len(raw['blueprints'])} Baupläne, {n_pr} Erz-Preise.")
     print("FERTIG:", STAMP, "-> Datei per Doppelklick im Browser oeffnen.")
 
 
