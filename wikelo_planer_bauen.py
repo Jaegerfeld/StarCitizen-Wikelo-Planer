@@ -112,6 +112,7 @@ def fetch_prices_uex(need_bases):
     except Exception as e:
         print("  Hinweis: UEX-Preise nicht erreichbar -> ohne Erz-Preise.", e)
         return out
+    CAP = 100000   # Plausibilitaet: aUEC/SCU; UEX hat fuer neue Erze teils Platzhalter (0 oder Millionen)
     data = res.get("data") if isinstance(res, dict) else res
     for c in (data or []):
         nm = (c.get("name") or "").strip()
@@ -121,11 +122,12 @@ def fetch_prices_uex(need_bases):
         pb = c.get("price_buy") or 0
         ps = c.get("price_sell") or 0
         entry = out.get(base, {"buy": None, "sell": None, "src": "uex"})
-        if pb and (entry["buy"] is None or pb < entry["buy"]["price"]):
+        if 0 < pb <= CAP and (entry["buy"] is None or pb < entry["buy"]["price"]):
             entry["buy"] = {"price": round(pb), "loc": None}
-        if ps and (entry["sell"] is None or ps > entry["sell"]["price"]):
+        if 0 < ps <= CAP and (entry["sell"] is None or ps > entry["sell"]["price"]):
             entry["sell"] = {"price": round(ps), "loc": None}
-        out[base] = entry
+        if entry["buy"] or entry["sell"]:
+            out[base] = entry
     return out
 
 
@@ -245,6 +247,8 @@ h1 .sub{color:var(--gold);font-weight:600}
 input[type=text],input[type=number]{background:var(--panel2);border:1px solid var(--line);
   color:var(--txt);border-radius:6px;padding:6px 8px;font-size:13px}
 input[type=number]{width:64px}
+select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:5px 6px;font-size:12.5px}
+.btn[disabled]{opacity:.5;cursor:progress}
 .btn{background:var(--chip);border:1px solid var(--line);color:var(--txt);border-radius:6px;
   padding:6px 10px;font-size:12.5px;cursor:pointer}
 .btn:hover{border-color:var(--gold2)}
@@ -367,6 +371,15 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
     <button class="btn" id="btnLoad">📂 Bestand laden</button>
     <button class="btn" id="btnReset">leeren</button>
     <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+    <span style="flex:1 1 auto"></span>
+    <label title="Preisquelle für Erze">Preise:
+      <select id="priceSrc">
+        <option value="beide">beide (star-head + UEX)</option>
+        <option value="uex">nur UEX</option>
+        <option value="starhead">nur star-head</option>
+      </select>
+    </label>
+    <button class="btn" id="btnRefresh" title="Angebote + Baupläne + Preise live neu laden">🔄 Daten aktualisieren</button>
   </div>
 </header>
 
@@ -496,7 +509,7 @@ let DATA = transform(RAW);
 
 // ---- state ----
 let inv = {};
-let pref = {mode:'aufwand', myRep:0, onlyRep:false, showRetired:false, onlyHave:false};
+let pref = {mode:'aufwand', myRep:0, onlyRep:false, showRetired:false, onlyHave:false, priceSrc:'beide'};
 let lsInv = null;
 try{ lsInv = JSON.parse(localStorage.getItem(LS_INV)||'null'); }catch(e){}
 if(lsInv && Object.keys(lsInv).length){ inv = lsInv; }
@@ -802,8 +815,74 @@ $('#fileInput').addEventListener('change', e=>{
 });
 $('#btnReset').addEventListener('click', ()=>{ if(confirm('Wirklich den ganzen Bestand leeren?')){ inv={}; saveInv(); rerenderAll(); } });
 
+// ---- In-App-Datenaktualisierung (Refresh) ----
+const EP = {
+  wikelo:     'https://seeknd.github.io/Wikelo/data/wikelo_data.json',
+  blueprints: 'https://api.star-head.de/blueprint',
+  uex:        'https://api.uexcorp.space/2.0/commodities',
+};
+async function getJSON(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+function ingredientNamesFrom(w){
+  const set=new Set(), recs=[...(w.ships||[]),...(w.items||[]),...(w.intro_mission?[w.intro_mission]:[])];
+  for(const rec of recs) for(const it of parseRecipe(rec.recipe||'')) set.add(it.name);
+  return set;
+}
+async function fetchBlueprints(names){
+  const bp=await getJSON(EP.blueprints), out=[];
+  for(const b of bp){ const nm=b&&b.name; if(!nm||!names.has(nm)) continue;
+    const costs=[]; for(const c of (b.costs||[])){ const rn=c&&c.commodity&&c.commodity.name; if(rn) costs.push({name:rn, qty:c.quantity||0}); }
+    if(costs.length) out.push({name:nm, costs}); }
+  return out;
+}
+function needOreBases(names){ const s=new Set(); for(const n of names){ const o=oreCommodity(n); if(o) s.add(o); } return s; }
+async function fetchPricesUex(bases){
+  if(!bases.size) return {};
+  const CAP=100000;   // Plausibilitaet: UEX hat fuer neue Erze teils Platzhalter (0 / Millionen)
+  const res=await getJSON(EP.uex), data=(res&&res.data)||res||[], out={};
+  for(const c of data){ const nm=String(c.name||'').trim(), base=nm.replace(/\s*\((Ore|Pure|Raw)\)$/,'').trim();
+    if(!bases.has(base)) continue;
+    const pb=c.price_buy||0, ps=c.price_sell||0, e=out[base]||{buy:null,sell:null,src:'uex'};
+    if(pb>0&&pb<=CAP&&(!e.buy||pb<e.buy.price)) e.buy={price:Math.round(pb),loc:null};
+    if(ps>0&&ps<=CAP&&(!e.sell||ps>e.sell.price)) e.sell={price:Math.round(ps),loc:null};
+    if(e.buy||e.sell) out[base]=e; }
+  return out;
+}
+async function refreshData(){
+  const btn=$('#btnRefresh'); if(btn.dataset.busy) return;
+  btn.dataset.busy='1'; btn.disabled=true; const label=btn.textContent; btn.textContent='⏳ lädt…';
+  try{
+    const w0=await getJSON(EP.wikelo);
+    const w={ meta:w0.meta||{}, ships:w0.ships||[], items:w0.items||[], intro_mission:w0.intro_mission||{}, currency_exchanges:w0.currency_exchanges||[] };
+    const names=ingredientNamesFrom(w), src=pref.priceSrc||'beide';
+    let blueprints=[];
+    if(src!=='uex'){ try{ blueprints=await fetchBlueprints(names); }catch(e){ toast('Baupläne (star-head) nicht erreichbar'); } }
+    let prices={};
+    if(src==='uex'||src==='beide'){ try{ prices=await fetchPricesUex(needOreBases(names)); }catch(e){ toast('Preise (UEX) nicht erreichbar'); } }
+    const newRaw={ schema:RAW_BAKED.schema, version:RAW_BAKED.version, generated:new Date().toISOString().slice(0,10),
+      source:'refresh', wikelo:w, blueprints, prices, saved_inv:(RAW.saved_inv||{}) };
+    RAW=newRaw; DATA=transform(RAW);
+    try{ localStorage.setItem(LS_RAW, JSON.stringify(newRaw)); }catch(e){}
+    updateMeta(); rerenderAll();
+    toast('Daten aktualisiert · '+DATA.meta.n_offers+' Angebote, Patch '+DATA.meta.patch);
+  }catch(e){
+    toast('Aktualisierung fehlgeschlagen (Quelle offline?) – bestehende Daten bleiben');
+  }finally{ btn.dataset.busy=''; btn.disabled=false; btn.textContent=label; }
+}
+$('#btnRefresh').addEventListener('click', refreshData);
+$('#btnRefresh').addEventListener('contextmenu', e=>{ e.preventDefault();
+  if(confirm('Auf die eingebauten Build-Daten zurücksetzen (gecachte Aktualisierung verwerfen)?')){
+    try{ localStorage.removeItem(LS_RAW); }catch(e2){} RAW=RAW_BAKED; DATA=transform(RAW); updateMeta(); rerenderAll(); toast('Auf Build-Daten zurückgesetzt'); }
+});
+$('#priceSrc').addEventListener('change', e=>{ pref.priceSrc=e.target.value; savePref(); });
+
+function updateMeta(){
+  const m=DATA.meta, fresh = m.source==='refresh' ? ('aktualisiert '+m.generated) : ('gebaut '+m.generated);
+  $('#meta').textContent = `v${m.version} · Patch ${m.patch} · Daten ${m.data_updated} · ${m.n_offers} Angebote · ${m.n_ingredients} Ressourcen · ${fresh}`;
+}
+
 // ---- init ----
-$('#meta').textContent = `v${DATA.meta.version} · Patch ${DATA.meta.patch} · Daten ${DATA.meta.data_updated} · ${DATA.meta.n_offers} Angebote · ${DATA.meta.n_ingredients} Ressourcen · gebaut ${DATA.meta.generated}`;
+updateMeta();
+$('#priceSrc').value = pref.priceSrc||'beide';
 $('#myRep').value=pref.myRep||0; $('#onlyRep').checked=!!pref.onlyRep;
 $('#showRetired').checked=!!pref.showRetired; $('#onlyHave').checked=!!pref.onlyHave;
 $$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.mode===pref.mode));
