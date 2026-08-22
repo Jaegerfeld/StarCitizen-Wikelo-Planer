@@ -133,64 +133,66 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
   <div class="hrow">
     <h1>SC <span class="sub">Wikelo</span> Ressourcen-Planer</h1>
     <span class="meta" id="meta"></span>
+    <span style="flex:1 1 auto"></span>
+    <div class="seg" id="langSeg"><button data-lang="de">DE</button><button data-lang="en">EN</button></div>
   </div>
   <div class="controls">
     <div class="seg" id="modeSeg">
-      <button data-mode="aufwand" class="on">Nach Aufwand</button>
-      <button data-mode="gruppe">Nach Artikelgruppe</button>
+      <button data-mode="aufwand" class="on" data-i18n="modeEffort">Nach Aufwand</button>
+      <button data-mode="gruppe" data-i18n="modeGroup">Nach Artikelgruppe</button>
     </div>
-    <label>Mein Wikelo-Ruf:
+    <label><span data-i18n="repLabel">Mein Wikelo-Ruf:</span>
       <input type="number" id="myRep" min="0" step="5" value="0" style="width:72px">
     </label>
-    <label><input type="checkbox" id="onlyRep"> nur erfüllbarer Ruf</label>
-    <label><input type="checkbox" id="showRetired"> zurückgezogene zeigen</label>
-    <input type="text" id="offerSearch" placeholder="Angebote filtern…" style="min-width:150px">
-    <button class="btn prim" id="btnSave">💾 Bestand speichern</button>
-    <button class="btn" id="btnLoad">📂 Bestand laden</button>
-    <button class="btn" id="btnReset">leeren</button>
+    <label><input type="checkbox" id="onlyRep"> <span data-i18n="onlyRep">nur erfüllbarer Ruf</span></label>
+    <label><input type="checkbox" id="showRetired"> <span data-i18n="showRetired">zurückgezogene zeigen</span></label>
+    <input type="text" id="offerSearch" data-i18n-ph="offerSearchPh" placeholder="Angebote filtern…" style="min-width:150px">
+    <button class="btn prim" id="btnSave" data-i18n="btnSave">💾 Bestand speichern</button>
+    <button class="btn" id="btnLoad" data-i18n="btnLoad">📂 Bestand laden</button>
+    <button class="btn" id="btnReset" data-i18n="btnReset">leeren</button>
     <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
     <span style="flex:1 1 auto"></span>
-    <label title="Preisquelle für Erze">Preise:
+    <label><span data-i18n="priceLabel">Preise:</span>
       <select id="priceSrc">
-        <option value="beide">beide (star-head + UEX)</option>
-        <option value="uex">nur UEX</option>
-        <option value="starhead">nur star-head</option>
+        <option value="beide" data-i18n="priceBoth">beide (star-head + UEX)</option>
+        <option value="uex" data-i18n="priceUex">nur UEX</option>
+        <option value="starhead" data-i18n="priceSh">nur star-head</option>
       </select>
     </label>
-    <button class="btn" id="btnRefresh" title="Angebote + Baupläne + Preise live neu laden">🔄 Daten aktualisieren</button>
+    <button class="btn" id="btnRefresh" data-i18n="btnRefresh" data-i18n-title="btnRefreshTitle" title="Angebote + Baupläne + Preise live neu laden">🔄 Daten aktualisieren</button>
   </div>
 </header>
 
 <main>
   <aside class="panel side">
     <div class="ph">
-      <b>Mein Ressourcen-Bestand</b>
+      <b data-i18n="panelTitle">Mein Ressourcen-Bestand</b>
       <span class="meta" id="haveCount"></span>
     </div>
     <div class="qadd">
-      <input type="text" id="quickAdd" autocomplete="off" placeholder='⚡ Schnell-Eingabe: z. B. „carinite 50" · Enter'>
+      <input type="text" id="quickAdd" autocomplete="off" data-i18n-ph="quickPh" placeholder='⚡ Schnell-Eingabe: z. B. „carinite 50" · Enter'>
       <div class="qsug" id="quickSug"></div>
     </div>
-    <div class="qhint">„name zahl" setzt · „name +zahl" addiert · nur „name" = +1 · ↑↓ wählen, Enter übernehmen</div>
-    <div style="padding:8px 8px 0"><input type="text" id="resSearch" placeholder="Ressource suchen…" style="width:100%"></div>
+    <div class="qhint" data-i18n="quickHint">„name zahl" setzt · „name +zahl" addiert · nur „name" = +1 · ↑↓ wählen, Enter übernehmen</div>
+    <div style="padding:8px 8px 0"><input type="text" id="resSearch" data-i18n-ph="resSearchPh" placeholder="Ressource suchen…" style="width:100%"></div>
     <div style="padding:5px 12px 0;color:var(--dim);font-size:11px;line-height:1.4">
-      Menge: Klick <b>+1</b> · Shift <b>+10</b> · Strg <b>+50</b> · Alt <b>+100</b>
-      <span style="color:#7d95a8">(Mausrad = hoch/runter, Rechtsklick = minus, gleiche Modifier)</span>
+      <span data-i18n="qtyHint">Menge: Klick +1 · Shift +10 · Strg +50 · Alt +100</span>
+      <span style="color:#7d95a8" data-i18n="qtyHint2">(Mausrad = hoch/runter, Rechtsklick = minus, gleiche Modifier)</span>
     </div>
     <label style="padding:6px 12px;color:var(--dim);font-size:12px;display:flex;gap:6px;align-items:center">
-      <input type="checkbox" id="onlyHave"> nur „hab ich" zeigen
+      <input type="checkbox" id="onlyHave"> <span data-i18n="onlyHave">nur „hab ich" zeigen</span>
     </label>
     <div class="scroll" id="resList"></div>
   </aside>
 
   <section>
     <div class="legend">
-      <span><i class="sw" style="background:var(--ok)"></i> sofort</span>
-      <span><i class="sw" style="background:var(--gold2)"></i> 1 fehlt</span>
-      <span><i class="sw" style="background:#e69138"></i> 2 fehlen</span>
-      <span><i class="sw" style="background:#c0392b"></i> 3+ fehlen</span>
-      <span>· Aufwand <i class="edot on"></i><i class="edot on"></i><i class="edot"></i> = Gesamtaufwand des Fehlenden (Menge × Beschaffung)</span>
-      <span style="margin-left:auto">Menge links: Klick +1 · Shift +10 · Strg +50 · Alt +100 (Mausrad/Rechtsklick ebenso)</span>
+      <span><i class="sw" style="background:var(--ok)"></i> <span data-i18n="lgNow">sofort</span></span>
+      <span><i class="sw" style="background:var(--gold2)"></i> <span data-i18n="lg1">1 fehlt</span></span>
+      <span><i class="sw" style="background:#e69138"></i> <span data-i18n="lg2">2 fehlen</span></span>
+      <span><i class="sw" style="background:#c0392b"></i> <span data-i18n="lg3">3+ fehlen</span></span>
+      <span>· <span data-i18n="lgEffort">Aufwand = Gesamtaufwand des Fehlenden (Menge × Beschaffung)</span></span>
+      <span style="margin-left:auto" data-i18n="tip">Menge links: Klick +1 · Shift +10 · Strg +50 · Alt +100 (Mausrad/Rechtsklick ebenso)</span>
     </div>
     <div id="offers" style="margin-top:12px"></div>
   </section>
@@ -204,20 +206,84 @@ const LS_INV = 'sc_wikelo_inv_v1', LS_PREF = 'sc_wikelo_pref_v1', LS_RAW = 'sc_w
 const RAW_BAKED = JSON.parse(document.getElementById('wikelo-raw').textContent);
 
 // ===== Aufbereitungslogik – EINZIGE Quelle der Wahrheit (Offline-Build wie In-App-Refresh) =====
-const CAT_DE = {ship:'Schiff',vehicle:'Fahrzeug',weapon:'Waffe',armor:'Ruestung',gear:'Ausruestung',intro:'Freischaltung'};
-const CAT_ORDER = {Schiff:0,Fahrzeug:1,Waffe:2,Ruestung:3,Ausruestung:4,Freischaltung:5};
-const STATUS_DE = {active:'aktiv','retired-loot':'zurueckgezogen (Loot)','retired-store':'zurueckgezogen (Store)'};
-const SRC_META = {
-  'Wikelo/Waehrung':      {unit:4, hint:'Wikelo-Favor/Scrip – per Tausch (siehe unten)'},
-  'Mining/Erz':           {unit:1, hint:'Mining / teils kaufbar (Preis siehe unten)'},
-  'Creature/Loot':        {unit:2, hint:'Creature-Jagd (Valakkar / Kopion / Yormandi)'},
-  'Salvage/Vanduul':      {unit:2, hint:'Salvage / Vanduul-Gebiete'},
-  'CZ/Tech-Loot':         {unit:3, hint:'Contested Zones / Tech-Loot (PvP-Risiko)'},
-  'Missions-/Beute-Item': {unit:3, hint:'Missionsbelohnung / seltener Loot'},
-  'Craftbar (Bauplan)':   {unit:2, hint:'Craften – Rezept siehe unten'},
-  'Item/Sonstiges':       {unit:1, hint:'Kauf / Loot'},
+const CAT_ORDER = {ship:0,vehicle:1,weapon:2,armor:3,gear:4,intro:5};
+const SRC_UNIT  = {currency:4,mining:1,creature:2,salvage:2,cz:3,loot:3,craft:2,item:1};
+const SRC_ORDER = ['currency','mining','creature','salvage','cz','loot','craft','item'];
+
+// ===== Zweisprachigkeit (DE/EN) =====
+let LANG = 'de';
+const CAT_LABEL = {
+  de:{ship:'Schiff',vehicle:'Fahrzeug',weapon:'Waffe',armor:'Rüstung',gear:'Ausrüstung',intro:'Freischaltung'},
+  en:{ship:'Ship',vehicle:'Vehicle',weapon:'Weapon',armor:'Armor',gear:'Gear',intro:'Unlock'}};
+const STATUS_LABEL = {
+  de:{active:'aktiv','retired-loot':'zurückgezogen (Loot)','retired-store':'zurückgezogen (Store)'},
+  en:{active:'active','retired-loot':'retired (loot)','retired-store':'retired (store)'}};
+const SRC_LABEL = {
+  de:{currency:'Wikelo/Währung',mining:'Mining/Erz',creature:'Creature/Loot',salvage:'Salvage/Vanduul',cz:'CZ/Tech-Loot',loot:'Missions-/Beute-Item',craft:'Craftbar (Bauplan)',item:'Item/Sonstiges'},
+  en:{currency:'Wikelo/Currency',mining:'Mining/Ore',creature:'Creature/Loot',salvage:'Salvage/Vanduul',cz:'Contested Zone/Tech Loot',loot:'Mission/Rare Loot',craft:'Craftable (Blueprint)',item:'Item/Other'}};
+const SRC_HINT = {
+  de:{currency:'Wikelo-Favor/Scrip – per Tausch (siehe unten)',mining:'Mining / teils kaufbar (Preis siehe unten)',creature:'Creature-Jagd (Valakkar / Kopion / Yormandi)',salvage:'Salvage / Vanduul-Gebiete',cz:'Contested Zones / Tech-Loot (PvP-Risiko)',loot:'Missionsbelohnung / seltener Loot',craft:'Craften – Rezept siehe unten',item:'Kauf / Loot'},
+  en:{currency:'Wikelo Favor/Scrip – via exchange (see below)',mining:'Mining / partly buyable (price below)',creature:'Creature hunt (Valakkar / Kopion / Yormandi)',salvage:'Salvage / Vanduul areas',cz:'Contested Zones / tech loot (PvP risk)',loot:'Mission reward / rare loot',craft:'Craft it – recipe below',item:'Buy / loot'}};
+const BAND_LABEL = {
+  de:['Sofort verfügbar','1 Zutat fehlt','2 Zutaten fehlen','3+ Zutaten fehlen'],
+  en:['Available now','1 ingredient missing','2 ingredients missing','3+ ingredients missing']};
+const I18N = {
+  de:{ modeEffort:'Nach Aufwand', modeGroup:'Nach Artikelgruppe', repLabel:'Mein Wikelo-Ruf:',
+    onlyRep:'nur erfüllbarer Ruf', showRetired:'zurückgezogene zeigen', offerSearchPh:'Angebote filtern…',
+    btnSave:'💾 Bestand speichern', btnLoad:'📂 Bestand laden', btnReset:'leeren', priceLabel:'Preise:',
+    priceBoth:'beide (star-head + UEX)', priceUex:'nur UEX', priceSh:'nur star-head',
+    btnRefresh:'🔄 Daten aktualisieren', btnRefreshTitle:'Angebote + Baupläne + Preise live neu laden',
+    panelTitle:'Mein Ressourcen-Bestand', quickPh:'⚡ Schnell-Eingabe: z. B. „carinite 50" · Enter',
+    quickHint:'„name zahl" setzt · „name +zahl" addiert · nur „name" = +1 · ↑↓ wählen, Enter übernehmen',
+    resSearchPh:'Ressource suchen…', onlyHave:'nur „hab ich" zeigen',
+    qtyHint:'Menge: Klick +1 · Shift +10 · Strg +50 · Alt +100', qtyHint2:'(Mausrad = hoch/runter, Rechtsklick = minus, gleiche Modifier)',
+    lgNow:'sofort', lg1:'1 fehlt', lg2:'2 fehlen', lg3:'3+ fehlen',
+    lgEffort:'Aufwand = Gesamtaufwand des Fehlenden (Menge × Beschaffung)',
+    tip:'Menge links: Klick +1 · Shift +10 · Strg +50 · Alt +100 (Mausrad/Rechtsklick ebenso)',
+    marked:'{n} markiert', inOffers:'in {n} Angebot', inOffersPl:'in {n} Angeboten', craftTag:'craftbar', oreTag:'Erz',
+    getMissing:'Fehlendes beschaffen', complete:'✓ komplett', effort:'Aufwand', repNeed:'Ruf {n}', repRew:'+{n} Ruf',
+    haveShort:'hast {have}/{need}', offer:'Angebot', offers:'Angebote', noRes:'Keine Ressource gefunden.', noOffers:'Keine Angebote für diese Filter.',
+    exchange:'Tausch:', priceBuy:'kaufbar ≈ {p} aUEC/SCU', priceSell:'Verkaufswert ≈ {p} aUEC/SCU', avgUex:'Ø UEX', avgMarket:'Ø Markt',
+    confirmClear:'Wirklich den ganzen Bestand leeren?', confirmReset:'Auf die eingebauten Build-Daten zurücksetzen (gecachte Aktualisierung verwerfen)?',
+    toastReset:'Auf Build-Daten zurückgesetzt', toastRefreshed:'Daten aktualisiert · {n} Angebote, Patch {p}',
+    toastRefreshFail:'Aktualisierung fehlgeschlagen (Quelle offline?) – bestehende Daten bleiben',
+    toastBpFail:'Baupläne (star-head) nicht erreichbar', toastPriceFail:'Preise (UEX) nicht erreichbar',
+    toastSaved:'Bestand als SC_Wikelo_Bestand.json gespeichert', toastLoaded:'Bestand geladen: {n} Ressourcen',
+    toastBadFile:'Ungültige Datei (kein Bestand-JSON)', toastPreload:'Bestand aus SC_Wikelo_Bestand.json vorgeladen',
+    loading:'⏳ lädt…', metaBuilt:'gebaut {d}', metaRefreshed:'aktualisiert {d}',
+    metaLine:'v{v} · Patch {patch} · Daten {data} · {no} Angebote · {ni} Ressourcen · {fresh}' },
+  en:{ modeEffort:'By effort', modeGroup:'By category', repLabel:'My Wikelo reputation:',
+    onlyRep:'only reachable rep', showRetired:'show retired', offerSearchPh:'Filter offers…',
+    btnSave:'💾 Save stock', btnLoad:'📂 Load stock', btnReset:'clear', priceLabel:'Prices:',
+    priceBoth:'both (star-head + UEX)', priceUex:'UEX only', priceSh:'star-head only',
+    btnRefresh:'🔄 Refresh data', btnRefreshTitle:'Reload offers + blueprints + prices live',
+    panelTitle:'My resource stock', quickPh:'⚡ Quick entry: e.g. "carinite 50" · Enter',
+    quickHint:'"name number" sets · "name +number" adds · just "name" = +1 · ↑↓ to choose, Enter to apply',
+    resSearchPh:'Search resource…', onlyHave:'show only "have"',
+    qtyHint:'Amount: click +1 · Shift +10 · Ctrl +50 · Alt +100', qtyHint2:'(wheel = up/down, right-click = minus, same modifiers)',
+    lgNow:'now', lg1:'1 missing', lg2:'2 missing', lg3:'3+ missing',
+    lgEffort:'Effort = total effort for the missing (amount × sourcing)',
+    tip:'Amount on the left: click +1 · Shift +10 · Ctrl +50 · Alt +100 (wheel/right-click too)',
+    marked:'{n} marked', inOffers:'in {n} offer', inOffersPl:'in {n} offers', craftTag:'craftable', oreTag:'ore',
+    getMissing:'Get missing', complete:'✓ complete', effort:'Effort', repNeed:'Rep {n}', repRew:'+{n} rep',
+    haveShort:'have {have}/{need}', offer:'offer', offers:'offers', noRes:'No resource found.', noOffers:'No offers for these filters.',
+    exchange:'Exchange:', priceBuy:'buyable ≈ {p} aUEC/SCU', priceSell:'sell value ≈ {p} aUEC/SCU', avgUex:'UEX avg', avgMarket:'market avg',
+    confirmClear:'Really clear the entire stock?', confirmReset:'Reset to the built-in build data (discard cached refresh)?',
+    toastReset:'Reset to build data', toastRefreshed:'Data refreshed · {n} offers, patch {p}',
+    toastRefreshFail:'Refresh failed (source offline?) – existing data kept',
+    toastBpFail:'Blueprints (star-head) unreachable', toastPriceFail:'Prices (UEX) unreachable',
+    toastSaved:'Stock saved as SC_Wikelo_Bestand.json', toastLoaded:'Stock loaded: {n} resources',
+    toastBadFile:'Invalid file (not a stock JSON)', toastPreload:'Stock preloaded from SC_Wikelo_Bestand.json',
+    loading:'⏳ loading…', metaBuilt:'built {d}', metaRefreshed:'refreshed {d}',
+    metaLine:'v{v} · patch {patch} · data {data} · {no} offers · {ni} resources · {fresh}' }
 };
-const SRC_ORDER = ['Wikelo/Waehrung','Mining/Erz','Creature/Loot','Salvage/Vanduul','CZ/Tech-Loot','Missions-/Beute-Item','Craftbar (Bauplan)','Item/Sonstiges'];
+function t(k,p){ let s=(I18N[LANG]&&I18N[LANG][k]!=null)?I18N[LANG][k]:(I18N.de[k]!=null?I18N.de[k]:k);
+  if(p) for(const key in p) s=s.split('{'+key+'}').join(p[key]); return s; }
+const catLabel=k=>(CAT_LABEL[LANG][k]||CAT_LABEL.de[k]||k);
+const srcLabel=k=>(SRC_LABEL[LANG][k]||SRC_LABEL.de[k]||k);
+const srcHint =k=>(SRC_HINT[LANG][k]||SRC_HINT.de[k]||'');
+const statusLabel=k=>(STATUS_LABEL[LANG][k]||STATUS_LABEL.de[k]||k);
+const bandLabel=i=>(BAND_LABEL[LANG][i]||BAND_LABEL.de[i]);
 const RECIPE_RE = /^\s*(\d+)\s*x\s+(.*\S)\s*$/;
 const cmp = (a,b)=> a<b?-1:a>b?1:0;   // code-point-Vergleich wie Python (kein localeCompare)
 
@@ -237,14 +303,14 @@ function oreCommodity(name){
 }
 function classify(name, craftable){
   const n=String(name).toLowerCase();
-  if(['Wikelo Favor','Polaris Bit','MG Scrip','Council Scrip'].includes(name)) return 'Wikelo/Waehrung';
-  if(['(ore)','(pure)','saldynium','jaclium','carinite','sadaryx','quantanium fuel'].some(w=>n.includes(w))) return 'Mining/Erz';
-  if(['valakkar','kopion','yormandi','grazer','fungus'].some(w=>n.includes(w))) return 'Creature/Loot';
-  if(['medal','marker','badge','artifact fragment','metamaterial','test #'].some(w=>n.includes(w))) return 'Missions-/Beute-Item';
-  if(n.includes('vanduul')) return 'Salvage/Vanduul';
-  if(['rcmbnt','comp-board','secure drive','drive'].some(w=>n.includes(w))) return 'CZ/Tech-Loot';
-  if(craftable) return 'Craftbar (Bauplan)';
-  return 'Item/Sonstiges';
+  if(['Wikelo Favor','Polaris Bit','MG Scrip','Council Scrip'].includes(name)) return 'currency';
+  if(['(ore)','(pure)','saldynium','jaclium','carinite','sadaryx','quantanium fuel'].some(w=>n.includes(w))) return 'mining';
+  if(['valakkar','kopion','yormandi','grazer','fungus'].some(w=>n.includes(w))) return 'creature';
+  if(['medal','marker','badge','artifact fragment','metamaterial','test #'].some(w=>n.includes(w))) return 'loot';
+  if(n.includes('vanduul')) return 'salvage';
+  if(['rcmbnt','comp-board','secure drive','drive'].some(w=>n.includes(w))) return 'cz';
+  if(craftable) return 'craft';
+  return 'item';
 }
 function transform(raw){
   const w = raw.wikelo||{};
@@ -253,11 +319,11 @@ function transform(raw){
   for(const b of (raw.blueprints||[])) if(b && b.name && b.costs && b.costs.length) bpMap[b.name]=b.costs;
   const catRank=a=> (CAT_ORDER[a]!=null?CAT_ORDER[a]:9);
   const offers = allrecs.map(rec=>({
-    id: rec.id||'', reward: nameOf(rec), art: CAT_DE[rec.category]||rec.category||'',
+    id: rec.id||'', reward: nameOf(rec), artkey: rec.category||'',
     mission: String(rec.mission_name||'').trim(), recipe: parseRecipe(rec.recipe||''),
     rep_req: rec.reputation_required||0, rep_rew: rec.reputation_reward||0,
-    status: rec.status||'active', status_de: STATUS_DE[rec.status]||rec.status||'',
-  })).sort((a,b)=> (catRank(a.art)-catRank(b.art)) || cmp(a.reward.toLowerCase(), b.reward.toLowerCase()));
+    status: rec.status||'active',
+  })).sort((a,b)=> (catRank(a.artkey)-catRank(b.artkey)) || cmp(a.reward.toLowerCase(), b.reward.toLowerCase()));
   const currency_map={};
   for(const c of (w.currency_exchanges||[])){
     const rew=String(c.reward||'').trim(); if(!rew) continue;
@@ -272,7 +338,7 @@ function transform(raw){
     meta:{ version:raw.version||'0.0.0', patch:(w.meta||{}).current_patch||'?', data_updated:(w.meta||{}).data_updated||'?',
            generated:raw.generated||'', source:raw.source||'build', n_offers:offers.length, n_ingredients:names.length },
     offers, currency_map, prices:raw.prices||{}, ingredients,
-    src_order:SRC_ORDER, src_meta:SRC_META, cat_order:CAT_ORDER, saved_inv:raw.saved_inv||{},
+    src_order:SRC_ORDER, cat_order:CAT_ORDER, saved_inv:raw.saved_inv||{},
   };
 }
 
@@ -287,7 +353,7 @@ let DATA = transform(RAW);
 
 // ---- state ----
 let inv = {};
-let pref = {mode:'aufwand', myRep:0, onlyRep:false, showRetired:false, onlyHave:false, priceSrc:'beide'};
+let pref = {mode:'aufwand', myRep:0, onlyRep:false, showRetired:false, onlyHave:false, priceSrc:'beide', lang:'de'};
 let lsInv = null;
 try{ lsInv = JSON.parse(localStorage.getItem(LS_INV)||'null'); }catch(e){}
 if(lsInv && Object.keys(lsInv).length){ inv = lsInv; }
@@ -304,7 +370,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
 function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function fmt(n){ return Math.round(n).toLocaleString('de-DE'); }
-function unitOf(name){ const info=DATA.ingredients[name]||{}; return (DATA.src_meta[info.src]||{}).unit||2; }
+function unitOf(name){ const info=DATA.ingredients[name]||{}; return SRC_UNIT[info.src]||2; }
 // Aufwand (mengengewichtet) -> 1..5 Sterne, log-gestaucht (kalibriert: Wikelo Arrive≈1★, Idris≈5★)
 function starsOf(raw){ if(raw<=0) return 0; const l=Math.log10(raw);
   return l<1?1 : l<1.6?2 : l<2.1?3 : l<2.7?4 : 5; }
@@ -322,12 +388,7 @@ function analyze(o){
   return {missTypes, missQty, missing, band, effort, stars, repOk};
 }
 
-const BANDS=[
-  {k:0,label:'Sofort verfügbar',dot:'var(--ok)'},
-  {k:1,label:'1 Zutat fehlt',dot:'var(--gold2)'},
-  {k:2,label:'2 Zutaten fehlen',dot:'#e69138'},
-  {k:3,label:'3+ Zutaten fehlen',dot:'#c0392b'},
-];
+const BANDS=[ {k:0,dot:'var(--ok)'}, {k:1,dot:'var(--gold2)'}, {k:2,dot:'#e69138'}, {k:3,dot:'#c0392b'} ];
 
 // ---- inventory panel ----
 function renderRes(){
@@ -342,47 +403,43 @@ function renderRes(){
   let html='';
   for(const src of DATA.src_order){
     const arr=groups[src]; if(!arr||!arr.length) continue;
-    html+=`<div class="grp">${esc(src)}</div>`;
+    html+=`<div class="grp">${esc(srcLabel(src))}</div>`;
     for(const [nm,info] of arr){
       const v=have(nm);
+      const sub = (info.n_offers>1? t('inOffersPl',{n:info.n_offers}) : t('inOffers',{n:info.n_offers}))
+        + (info.blueprint?' · '+t('craftTag'):'') + (info.ore?' · '+t('oreTag'):'');
       html+=`<div class="res ${v?'have':''}" data-n="${esc(nm)}">
         <div class="qbox">
           <button class="qbtn" data-a="dec">−</button>
           <span class="qval ${v?'':'z'}">${v}</span>
           <button class="qbtn" data-a="inc">+</button>
         </div>
-        <div class="nm">${esc(nm)}<small>in ${info.n_offers} Angebot${info.n_offers>1?'en':''}${info.blueprint?' · craftbar':''}${info.ore?' · Erz':''}</small></div>
+        <div class="nm">${esc(nm)}<small>${esc(sub)}</small></div>
       </div>`;
     }
   }
-  $('#resList').innerHTML = html || '<div class="empty">Keine Ressource gefunden.</div>';
+  $('#resList').innerHTML = html || `<div class="empty">${t('noRes')}</div>`;
   const hc=Object.keys(inv).length;
-  $('#haveCount').textContent = hc? `${hc} markiert` : '';
+  $('#haveCount').textContent = hc? t('marked',{n:hc}) : '';
 }
 
 // ---- procurement hint for a missing ingredient ----
 function hintFor(name){
   const info=DATA.ingredients[name]||{};
-  const meta=DATA.src_meta[info.src]||{};
   let extra='';
-  // Bauplan
   if(info.blueprint){
     extra = '🔨 '+info.blueprint.map(c=>`${c.qty}× ${esc(c.name)}`).join(', ');
   }
-  // Waehrungs-Tausch (z. B. Wikelo Favor)
   else if(DATA.currency_map[name]){
-    const opts=DATA.currency_map[name].map(o=> o.recipe_raw
-        ? `<span class="opt">${esc(o.recipe_raw)}</span>`
-        : `<span class="opt">${esc(o.mission||'Sonderauftrag')}</span>`).join('');
-    extra = 'Tausch: '+opts;
+    const opts=DATA.currency_map[name].map(o=> `<span class="opt">${esc(o.recipe_raw||o.mission||'')}</span>`).join('');
+    extra = t('exchange')+' '+opts;
   }
-  // Erz-Preis / Kaufort
   else if(info.ore && DATA.prices[info.ore]){
-    const p=DATA.prices[info.ore], q=p.src==='uex'?'Ø UEX':'Ø Markt';
-    if(p.buy) extra = `kaufbar ≈ ${fmt(p.buy.price)} aUEC/SCU` + (p.buy.loc?` bei ${esc(p.buy.loc)}`:` (${q})`);
-    else if(p.sell) extra = `Verkaufswert ≈ ${fmt(p.sell.price)} aUEC/SCU` + (p.sell.loc?` (${esc(p.sell.loc)})`:` (${q})`);
+    const p=DATA.prices[info.ore], q=p.src==='uex'?t('avgUex'):t('avgMarket');
+    if(p.buy) extra = t('priceBuy',{p:fmt(p.buy.price)}) + (p.buy.loc?` (${esc(p.buy.loc)})`:` (${q})`);
+    else if(p.sell) extra = t('priceSell',{p:fmt(p.sell.price)}) + (p.sell.loc?` (${esc(p.sell.loc)})`:` (${q})`);
   }
-  return {src:info.src, hint:meta.hint||'', extra};
+  return {src:info.src, hint:srcHint(info.src), extra};
 }
 
 // ---- offers ----
@@ -402,26 +459,26 @@ function offerCard(o){
   if(a.missing.length){
     detHtml = `<div class="det">`+ a.missing.map(m=>{
         const h=hintFor(m.name);
-        return `<div class="row"><span class="src">${esc(h.src)}</span>
-          <b>${m.gap}× ${esc(m.name)}</b>${m.has?` <span class="sub">(hast ${m.has}/${m.need})</span>`:''}
+        return `<div class="row"><span class="src">${esc(srcLabel(h.src))}</span>
+          <b>${m.gap}× ${esc(m.name)}</b>${m.has?` <span class="sub">(${t('haveShort',{have:m.has,need:m.need})})</span>`:''}
           <div class="sub">${h.extra||esc(h.hint)}</div></div>`;
       }).join('') + `</div>`;
   }
   // Aufwand-Sterne (1..5) – mengengewichtet
   const eff = a.stars;
-  const dots = a.missTypes? `<span class="effort" title="Gesamt-Beschaffungsaufwand des Fehlenden (Menge × Quelle)">Aufwand `+
+  const dots = a.missTypes? `<span class="effort">${t('effort')} `+
     [1,2,3,4,5].map(i=>`<i class="edot ${i<=eff?'on':''}"></i>`).join('')+`</span>` : '';
-  const repBadge = o.rep_req? `<span class="badge ${locked?'lock':'rep'}">Ruf ${o.rep_req}${locked?' ⚠':''}</span>`:'';
-  const rewBadge = o.rep_rew? `<span class="badge rep">+${o.rep_rew} Ruf</span>`:'';
-  const retBadge = retired? `<span class="badge ret">${esc(o.status_de)}</span>`:'';
+  const repBadge = o.rep_req? `<span class="badge ${locked?'lock':'rep'}">${t('repNeed',{n:o.rep_req})}${locked?' ⚠':''}</span>`:'';
+  const rewBadge = o.rep_rew? `<span class="badge rep">${t('repRew',{n:o.rep_rew})}</span>`:'';
+  const retBadge = retired? `<span class="badge ret">${esc(statusLabel(o.status))}</span>`:'';
   return `<div class="card b${a.band} ${locked?'locked':''}" data-id="${o.id}">
     <h3>${esc(o.reward||o.mission)}</h3>
-    <span class="cat">${esc(o.art)}</span>
+    <span class="cat">${esc(catLabel(o.artkey))}</span>
     ${o.mission&&o.mission!==o.reward?`<div class="mission">„${esc(o.mission)}"</div>`:''}
     <div class="chips">${chips}</div>
     ${detHtml}
     <div class="foot">
-      <span>${a.missing.length?`<span class="tog">Fehlendes beschaffen ▾</span>`:'<span style="color:var(--ok)">✓ komplett</span>'}</span>
+      <span>${a.missing.length?`<span class="tog">${t('getMissing')} ▾</span>`:`<span style="color:var(--ok)">${t('complete')}</span>`}</span>
       <span style="display:flex;gap:8px;align-items:center">${dots} ${retBadge} ${rewBadge} ${repBadge}</span>
     </div>
   </div>`;
@@ -432,7 +489,7 @@ function passFilter(o,a){
   if(pref.onlyRep && !a.repOk) return false;
   const q=($('#offerSearch').value||'').toLowerCase();
   if(q){
-    const hay=(o.reward+' '+o.mission+' '+o.art+' '+o.recipe.map(r=>r.name).join(' ')).toLowerCase();
+    const hay=(o.reward+' '+o.mission+' '+catLabel(o.artkey)+' '+o.artkey+' '+o.recipe.map(r=>r.name).join(' ')).toLowerCase();
     if(!hay.includes(q)) return false;
   }
   return true;
@@ -451,21 +508,22 @@ function renderOffers(){
     for(const b of BANDS){
       const items=rows.filter(x=>x.a.band===b.k).sort(sortCmp);
       if(!items.length) continue;
+      const cnt=items.length+' '+(items.length>1?t('offers'):t('offer'));
       html+=`<div class="band"><div class="bh"><span class="dot" style="background:${b.dot}"></span>
-        <b>${b.label}</b><span class="cnt">${items.length} Angebot${items.length>1?'e':''}</span></div>
+        <b>${esc(bandLabel(b.k))}</b><span class="cnt">${cnt}</span></div>
         <div class="cards">${items.map(x=>offerCard(x.o)).join('')}</div></div>`;
     }
   } else {
     const cats=Object.keys(DATA.cat_order).sort((a,b)=>DATA.cat_order[a]-DATA.cat_order[b]);
     for(const cat of cats){
-      const items=rows.filter(x=>x.o.art===cat).sort(sortCmp);
+      const items=rows.filter(x=>x.o.artkey===cat).sort(sortCmp);
       if(!items.length) continue;
       html+=`<div class="band"><div class="bh"><span class="dot" style="background:var(--navy2)"></span>
-        <b>${esc(cat)}</b><span class="cnt">${items.length}</span></div>
+        <b>${esc(catLabel(cat))}</b><span class="cnt">${items.length}</span></div>
         <div class="cards">${items.map(x=>offerCard(x.o)).join('')}</div></div>`;
     }
   }
-  $('#offers').innerHTML = html || '<div class="empty">Keine Angebote für diese Filter.</div>';
+  $('#offers').innerHTML = html || `<div class="empty">${t('noOffers')}</div>`;
 }
 
 function rerenderAll(){ renderRes(); renderOffers(); }
@@ -502,7 +560,7 @@ function renderQuick(){
     const cur=have(m.name), info=DATA.ingredients[m.name]||{};
     let tgt=''; if(num!=null){ const n=+num.replace('+',''); tgt = num[0]==='+'?`→ ${cur+n}`:`→ ${n}`; }
     return `<div class="s ${i===quickIndex?'act':''}" data-i="${i}">
-      <span><span class="src2">${esc(info.src||'')}</span> ${esc(m.name)} <small>(${cur})</small></span>
+      <span><span class="src2">${esc(srcLabel(info.src))}</span> ${esc(m.name)} <small>(${cur})</small></span>
       <span class="sq">${tgt}</span></div>`;
   }).join('');
   box.classList.add('open');
@@ -542,7 +600,7 @@ $('#resList').addEventListener('wheel', e=>{
 $('#offers').addEventListener('click', e=>{
   const tog=e.target.closest('.tog');
   if(tog){ const d=tog.closest('.card').querySelector('.det'); if(d){ d.classList.toggle('open');
-    tog.textContent = d.classList.contains('open')?'Fehlendes beschaffen ▴':'Fehlendes beschaffen ▾'; } return; }
+    tog.textContent = t('getMissing')+(d.classList.contains('open')?' ▴':' ▾'); } return; }
   const chip=e.target.closest('.chip[data-miss]');
   if(chip){ const s=stepOf(e); setHave(chip.dataset.n, have(chip.dataset.n)+s); toast('+'+s+' '+chip.dataset.n); }
 });
@@ -578,7 +636,7 @@ $('#btnSave').addEventListener('click', ()=>{
   const a=document.createElement('a'); a.href=url; a.download='SC_Wikelo_Bestand.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
-  toast('Bestand als SC_Wikelo_Bestand.json gespeichert');
+  toast(t('toastSaved'));
 });
 $('#btnLoad').addEventListener('click', ()=> $('#fileInput').click());
 $('#fileInput').addEventListener('change', e=>{
@@ -587,11 +645,11 @@ $('#fileInput').addEventListener('change', e=>{
   rd.onload=()=>{ try{
     const o=JSON.parse(rd.result); if(typeof o!=='object'||Array.isArray(o)) throw 0;
     inv={}; for(const [k,v] of Object.entries(o)){ const q=Math.max(0,Math.round(+v||0)); if(q>0) inv[k]=q; }
-    saveInv(); rerenderAll(); toast('Bestand geladen: '+Object.keys(inv).length+' Ressourcen');
-  }catch(err){ toast('Ungültige Datei (kein Bestand-JSON)'); } };
+    saveInv(); rerenderAll(); toast(t('toastLoaded',{n:Object.keys(inv).length}));
+  }catch(err){ toast(t('toastBadFile')); } };
   rd.readAsText(f); e.target.value='';
 });
-$('#btnReset').addEventListener('click', ()=>{ if(confirm('Wirklich den ganzen Bestand leeren?')){ inv={}; saveInv(); rerenderAll(); } });
+$('#btnReset').addEventListener('click', ()=>{ if(confirm(t('confirmClear'))){ inv={}; saveInv(); rerenderAll(); } });
 
 // ---- In-App-Datenaktualisierung (Refresh) ----
 const EP = {
@@ -627,44 +685,60 @@ async function fetchPricesUex(bases){
 }
 async function refreshData(){
   const btn=$('#btnRefresh'); if(btn.dataset.busy) return;
-  btn.dataset.busy='1'; btn.disabled=true; const label=btn.textContent; btn.textContent='⏳ lädt…';
+  btn.dataset.busy='1'; btn.disabled=true; const label=btn.textContent; btn.textContent=t('loading');
   try{
     const w0=await getJSON(EP.wikelo);
     const w={ meta:w0.meta||{}, ships:w0.ships||[], items:w0.items||[], intro_mission:w0.intro_mission||{}, currency_exchanges:w0.currency_exchanges||[] };
     const names=ingredientNamesFrom(w), src=pref.priceSrc||'beide';
     let blueprints=[];
-    if(src!=='uex'){ try{ blueprints=await fetchBlueprints(names); }catch(e){ toast('Baupläne (star-head) nicht erreichbar'); } }
+    if(src!=='uex'){ try{ blueprints=await fetchBlueprints(names); }catch(e){ toast(t('toastBpFail')); } }
     let prices={};
-    if(src==='uex'||src==='beide'){ try{ prices=await fetchPricesUex(needOreBases(names)); }catch(e){ toast('Preise (UEX) nicht erreichbar'); } }
+    if(src==='uex'||src==='beide'){ try{ prices=await fetchPricesUex(needOreBases(names)); }catch(e){ toast(t('toastPriceFail')); } }
     const newRaw={ schema:RAW_BAKED.schema, version:RAW_BAKED.version, generated:new Date().toISOString().slice(0,10),
       source:'refresh', wikelo:w, blueprints, prices, saved_inv:(RAW.saved_inv||{}) };
     RAW=newRaw; DATA=transform(RAW);
     try{ localStorage.setItem(LS_RAW, JSON.stringify(newRaw)); }catch(e){}
     updateMeta(); rerenderAll();
-    toast('Daten aktualisiert · '+DATA.meta.n_offers+' Angebote, Patch '+DATA.meta.patch);
+    toast(t('toastRefreshed',{n:DATA.meta.n_offers, p:DATA.meta.patch}));
   }catch(e){
-    toast('Aktualisierung fehlgeschlagen (Quelle offline?) – bestehende Daten bleiben');
+    toast(t('toastRefreshFail'));
   }finally{ btn.dataset.busy=''; btn.disabled=false; btn.textContent=label; }
 }
 $('#btnRefresh').addEventListener('click', refreshData);
 $('#btnRefresh').addEventListener('contextmenu', e=>{ e.preventDefault();
-  if(confirm('Auf die eingebauten Build-Daten zurücksetzen (gecachte Aktualisierung verwerfen)?')){
-    try{ localStorage.removeItem(LS_RAW); }catch(e2){} RAW=RAW_BAKED; DATA=transform(RAW); updateMeta(); rerenderAll(); toast('Auf Build-Daten zurückgesetzt'); }
+  if(confirm(t('confirmReset'))){
+    try{ localStorage.removeItem(LS_RAW); }catch(e2){} RAW=RAW_BAKED; DATA=transform(RAW); updateMeta(); rerenderAll(); toast(t('toastReset')); }
 });
 $('#priceSrc').addEventListener('change', e=>{ pref.priceSrc=e.target.value; savePref(); });
 
 function updateMeta(){
-  const m=DATA.meta, fresh = m.source==='refresh' ? ('aktualisiert '+m.generated) : ('gebaut '+m.generated);
-  $('#meta').textContent = `v${m.version} · Patch ${m.patch} · Daten ${m.data_updated} · ${m.n_offers} Angebote · ${m.n_ingredients} Ressourcen · ${fresh}`;
+  const m=DATA.meta, fresh = m.source==='refresh' ? t('metaRefreshed',{d:m.generated}) : t('metaBuilt',{d:m.generated});
+  $('#meta').textContent = t('metaLine',{v:m.version, patch:m.patch, data:m.data_updated, no:m.n_offers, ni:m.n_ingredients, fresh});
 }
 
+// ---- Sprache (DE/EN) ----
+function applyStaticI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=> el.textContent=t(el.dataset.i18n));
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=> el.placeholder=t(el.dataset.i18nPh));
+  document.querySelectorAll('[data-i18n-title]').forEach(el=> el.title=t(el.dataset.i18nTitle));
+  document.documentElement.lang=LANG;
+  $$('#langSeg button').forEach(b=>b.classList.toggle('on', b.dataset.lang===LANG));
+}
+$('#langSeg').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-lang]'); if(!b) return;
+  LANG=b.dataset.lang; pref.lang=LANG; savePref();
+  applyStaticI18n(); updateMeta(); rerenderAll();
+});
+
 // ---- init ----
+LANG = pref.lang || 'de';
+applyStaticI18n();
 updateMeta();
 $('#priceSrc').value = pref.priceSrc||'beide';
 $('#myRep').value=pref.myRep||0; $('#onlyRep').checked=!!pref.onlyRep;
 $('#showRetired').checked=!!pref.showRetired; $('#onlyHave').checked=!!pref.onlyHave;
 $$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.mode===pref.mode));
-if(!lsInv && Object.keys(inv).length) toast('Bestand aus SC_Wikelo_Bestand.json vorgeladen');
+if(!lsInv && Object.keys(inv).length) toast(t('toastPreload'));
 rerenderAll();
 </script>
 </body>
