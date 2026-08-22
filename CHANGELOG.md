@@ -4,6 +4,12 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.1.1] – 2026-08-22
+
+### Geändert
+- Ruf-Badges eindeutiger beschriftet: Belohnung „Belohnung +N Ruf" (grün) vs.
+  Voraussetzung „braucht Ruf N ⚠" (rot) – vorher beide nur „Ruf N". DE + EN.
+
 ## [1.1.0] – 2026-08-22
 
 ### Hinzugefügt
@@ -45,5 +51,6 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - `experimental/ocr/` – Windows-OCR-Vorarbeit zum Auslesen des Inventars.
   Derzeit blockiert, weil das SC-Inventar nur Icons ohne Namen zeigt (siehe README dort).
 
+[1.1.1]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.0.0
