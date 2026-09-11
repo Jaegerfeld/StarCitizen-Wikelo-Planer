@@ -14,8 +14,11 @@ Bedienung der fertigen App:
     Innerhalb der Baender zusaetzlich nach Beschaffungs-Aufwand sortiert
     (Erz leicht, Creature/Contested-Zone schwer). Umschaltbar auf Artikelgruppe.
   * "Fehlendes beschaffen" je Angebot: Bauplan-Rezept, Favor-Tausch, Erz-Preis/Kaufort.
-  * Bestand bleibt im Browser (localStorage) + Speichern/Laden als Datei
-    (SC_Wikelo_Bestand.json). Diese Datei wird beim Neubau automatisch vorgeladen.
+  * Bereits erhaltene Angebote per "erworben" markieren = ausblenden (persistiert).
+  * Bestand + Erworben-Markierungen bleiben im Browser (localStorage) und lassen sich als
+    Datei speichern/laden (Format {schema, inventory, acquired}; freier Speicherort per
+    File System Access API, sonst Download). Eine vorhandene SC_Wikelo_Bestand.json wird
+    beim Neubau automatisch vorgeladen (altes flaches {name: menge} wird weiter gelesen).
 
 Start:  py "wikelo_planer_bauen.py"   (oder Wikelo_Planer_aktualisieren.bat)
 """
@@ -150,6 +153,41 @@ def recipe_names(recipe):
     return out
 
 
+def load_saved(path):
+    """Bestandsdatei einlesen -> (saved_inv, saved_acq).
+    Format v2 = {"inventory": {...}, "acquired": {...}}; altes flaches {name: menge}
+    wird weiterhin als reiner Bestand gelesen (Abwaertskompatibilitaet)."""
+    saved_inv, saved_acq = {}, {}
+    if not path.exists():
+        return saved_inv, saved_acq
+    try:
+        b = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        print("  Hinweis: SC_Wikelo_Bestand.json nicht lesbar.", e)
+        return saved_inv, saved_acq
+    if isinstance(b, dict) and isinstance(b.get("inventory"), dict):
+        stock = b["inventory"]
+        acquired = b.get("acquired") if isinstance(b.get("acquired"), dict) else {}
+    else:
+        stock = b if isinstance(b, dict) else {}
+        acquired = {}
+    for k, v in stock.items():
+        try:
+            q = max(0, int(round(float(v))))
+        except (TypeError, ValueError):
+            continue
+        if q > 0:
+            saved_inv[k] = q
+    for k, v in acquired.items():
+        if isinstance(v, dict):
+            saved_acq[str(k)] = {"reward": str(v.get("reward", k)), "ts": str(v.get("ts", ""))}
+        elif v:
+            saved_acq[str(k)] = {"reward": str(k), "ts": ""}
+    print(f"  Bestand vorgeladen aus {path.name}: {len(saved_inv)} Ressourcen"
+          f"{f', {len(saved_acq)} erworben' if saved_acq else ''}.")
+    return saved_inv, saved_acq
+
+
 def build_raw():
     client = SiteClient(HOST)
     print("Lade Wikelo-Daten ...")
@@ -197,16 +235,7 @@ def build_raw():
     print(f"  Preise fuer {sum(1 for v in prices.values() if v.get('buy') or v.get('sell'))} Erz(e).")
 
     # Gespeicherten Bestand (falls vorhanden) als Vorbelegung
-    saved_inv = {}
-    if BESTAND.exists():
-        try:
-            b = json.loads(BESTAND.read_text(encoding="utf-8"))
-            for k, v in b.items():
-                q = max(0, int(round(float(v))))
-                if q > 0: saved_inv[k] = q
-            print(f"  Bestand vorgeladen aus {BESTAND.name}: {len(saved_inv)} Ressourcen.")
-        except Exception as e:
-            print("  Hinweis: SC_Wikelo_Bestand.json nicht lesbar.", e)
+    saved_inv, saved_acq = load_saved(BESTAND)
 
     return {
         "schema": 2,
@@ -223,6 +252,7 @@ def build_raw():
         "blueprints": blueprints,
         "prices": prices,
         "saved_inv": saved_inv,
+        "saved_acq": saved_acq,   # {mission_name: {reward, ts}} – als erworben markierte Angebote
     }
 
 
@@ -306,13 +336,18 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
 .band > .bh .cnt{color:var(--dim);font-size:12px}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
 .card{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 11px;
-  border-left:4px solid var(--line)}
+  border-left:4px solid var(--line);position:relative}
 .card.b0{border-left-color:var(--ok)}
 .card.b1{border-left-color:var(--gold2)}
 .card.b2{border-left-color:#e69138}
 .card.b3{border-left-color:#c0392b}
 .card.locked{opacity:.62}
-.card h3{margin:0 0 3px;font-size:14px;line-height:1.2}
+.card.acquired{opacity:.6}
+.acq-btn{position:absolute;top:8px;right:8px;z-index:2;background:var(--chip);border:1px solid var(--line);
+  color:var(--dim);border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;line-height:1.4}
+.acq-btn:hover{border-color:var(--gold2);color:var(--txt)}
+.acq-btn.on{background:var(--okbg);border-color:#2b6b52;color:#bff3dd}
+.card h3{margin:0 0 3px;font-size:14px;line-height:1.2;padding-right:78px}
 .card .cat{display:inline-block;font-size:10.5px;color:var(--dim);border:1px solid var(--line);
   border-radius:20px;padding:1px 8px;margin-bottom:6px}
 .card .mission{color:var(--dim);font-size:11.5px;margin:0 0 7px;font-style:italic}
@@ -375,8 +410,9 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
     </label>
     <label><input type="checkbox" id="onlyRep"> <span data-i18n="onlyRep">nur erfüllbarer Ruf</span></label>
     <label><input type="checkbox" id="showRetired"> <span data-i18n="showRetired">zurückgezogene zeigen</span></label>
+    <label><input type="checkbox" id="showAcquired"> <span data-i18n="showAcquired">erworbene zeigen</span> <span class="meta" id="acqCount"></span></label>
     <input type="text" id="offerSearch" data-i18n-ph="offerSearchPh" placeholder="Angebote filtern…" style="min-width:150px">
-    <button class="btn prim" id="btnSave" data-i18n="btnSave">💾 Bestand speichern</button>
+    <button class="btn prim" id="btnSave" data-i18n="btnSave" data-i18n-title="btnSaveTitle" title="Klick: speichern · Rechtsklick: Speicherort neu wählen">💾 Bestand speichern</button>
     <button class="btn" id="btnLoad" data-i18n="btnLoad">📂 Bestand laden</button>
     <button class="btn" id="btnReset" data-i18n="btnReset">leeren</button>
     <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
@@ -432,6 +468,7 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
 <script id="wikelo-raw" type="application/json">/*__RAW__*/</script>
 <script>
 const LS_INV = 'sc_wikelo_inv_v1', LS_PREF = 'sc_wikelo_pref_v1', LS_RAW = 'sc_wikelo_raw_v2';
+const LS_ACQ = 'sc_wikelo_acq_v1';   // als erworben markierte Angebote (Schluessel = mission_name, stabil)
 const RAW_BAKED = JSON.parse(document.getElementById('wikelo-raw').textContent);
 
 // ===== Aufbereitungslogik – EINZIGE Quelle der Wahrheit (Offline-Build wie In-App-Refresh) =====
@@ -458,8 +495,10 @@ const BAND_LABEL = {
   en:['Available now','1 ingredient missing','2 ingredients missing','3+ ingredients missing']};
 const I18N = {
   de:{ modeEffort:'Nach Aufwand', modeGroup:'Nach Artikelgruppe', repLabel:'Mein Wikelo-Ruf:',
-    onlyRep:'nur erfüllbarer Ruf', showRetired:'zurückgezogene zeigen', offerSearchPh:'Angebote filtern…',
-    btnSave:'💾 Bestand speichern', btnLoad:'📂 Bestand laden', btnReset:'leeren', priceLabel:'Preise:',
+    onlyRep:'nur erfüllbarer Ruf', showRetired:'zurückgezogene zeigen', showAcquired:'erworbene zeigen',
+    offerSearchPh:'Angebote filtern…',
+    btnSave:'💾 Bestand speichern', btnSaveTitle:'Klick: speichern · Rechtsklick: Speicherort neu wählen',
+    btnLoad:'📂 Bestand laden', btnReset:'leeren', priceLabel:'Preise:',
     priceBoth:'beide (star-head + UEX)', priceUex:'nur UEX', priceSh:'nur star-head',
     btnRefresh:'🔄 Daten aktualisieren', btnRefreshTitle:'Angebote + Baupläne + Preise live neu laden',
     panelTitle:'Mein Ressourcen-Bestand', quickPh:'⚡ Schnell-Eingabe: z. B. „carinite 50" · Enter',
@@ -470,6 +509,10 @@ const I18N = {
     lgEffort:'Aufwand = Gesamtaufwand des Fehlenden (Menge × Beschaffung)',
     tip:'Menge links: Klick +1 · Shift +10 · Strg +50 · Alt +100 (Mausrad/Rechtsklick ebenso)',
     marked:'{n} markiert', inOffers:'in {n} Angebot', inOffersPl:'in {n} Angeboten', craftTag:'craftbar', oreTag:'Erz',
+    acqBtnMark:'✓ erworben', acqBtnUnmark:'↩ zurück',
+    acqBtnMarkTitle:'Als erworben markieren und ausblenden', acqBtnUnmarkTitle:'Markierung entfernen (wieder einblenden)',
+    acqCount:'({n} erworben)', acqOrphan:'{n} erworben, aber nicht mehr in den Daten',
+    toastAcq:'als erworben markiert – ausgeblendet', toastUnacq:'wieder eingeblendet',
     getMissing:'Fehlendes beschaffen', complete:'✓ komplett', effort:'Aufwand', repNeed:'braucht Ruf {n}', repRew:'Belohnung +{n} Ruf',
     haveShort:'hast {have}/{need}', offer:'Angebot', offers:'Angebote', noRes:'Keine Ressource gefunden.', noOffers:'Keine Angebote für diese Filter.',
     exchange:'Tausch:', priceBuy:'kaufbar ≈ {p} aUEC/SCU', priceSell:'Verkaufswert ≈ {p} aUEC/SCU', avgUex:'Ø UEX', avgMarket:'Ø Markt',
@@ -477,13 +520,15 @@ const I18N = {
     toastReset:'Auf Build-Daten zurückgesetzt', toastRefreshed:'Daten aktualisiert · {n} Angebote, Patch {p}',
     toastRefreshFail:'Aktualisierung fehlgeschlagen (Quelle offline?) – bestehende Daten bleiben',
     toastBpFail:'Baupläne (star-head) nicht erreichbar', toastPriceFail:'Preise (UEX) nicht erreichbar',
-    toastSaved:'Bestand als SC_Wikelo_Bestand.json gespeichert', toastLoaded:'Bestand geladen: {n} Ressourcen',
+    toastSaved:'Bestand gespeichert', toastLoaded:'Bestand geladen: {n} Ressourcen',
     toastBadFile:'Ungültige Datei (kein Bestand-JSON)', toastPreload:'Bestand aus SC_Wikelo_Bestand.json vorgeladen',
     loading:'⏳ lädt…', metaBuilt:'gebaut {d}', metaRefreshed:'aktualisiert {d}',
     metaLine:'v{v} · Patch {patch} · Daten {data} · {no} Angebote · {ni} Ressourcen · {fresh}' },
   en:{ modeEffort:'By effort', modeGroup:'By category', repLabel:'My Wikelo reputation:',
-    onlyRep:'only reachable rep', showRetired:'show retired', offerSearchPh:'Filter offers…',
-    btnSave:'💾 Save stock', btnLoad:'📂 Load stock', btnReset:'clear', priceLabel:'Prices:',
+    onlyRep:'only reachable rep', showRetired:'show retired', showAcquired:'show acquired',
+    offerSearchPh:'Filter offers…',
+    btnSave:'💾 Save stock', btnSaveTitle:'Click: save · Right-click: choose new location',
+    btnLoad:'📂 Load stock', btnReset:'clear', priceLabel:'Prices:',
     priceBoth:'both (star-head + UEX)', priceUex:'UEX only', priceSh:'star-head only',
     btnRefresh:'🔄 Refresh data', btnRefreshTitle:'Reload offers + blueprints + prices live',
     panelTitle:'My resource stock', quickPh:'⚡ Quick entry: e.g. "carinite 50" · Enter',
@@ -494,6 +539,10 @@ const I18N = {
     lgEffort:'Effort = total effort for the missing (amount × sourcing)',
     tip:'Amount on the left: click +1 · Shift +10 · Ctrl +50 · Alt +100 (wheel/right-click too)',
     marked:'{n} marked', inOffers:'in {n} offer', inOffersPl:'in {n} offers', craftTag:'craftable', oreTag:'ore',
+    acqBtnMark:'✓ acquired', acqBtnUnmark:'↩ undo',
+    acqBtnMarkTitle:'Mark as acquired and hide', acqBtnUnmarkTitle:'Remove mark (show again)',
+    acqCount:'({n} acquired)', acqOrphan:'{n} acquired but no longer in the data',
+    toastAcq:'marked as acquired – hidden', toastUnacq:'shown again',
     getMissing:'Get missing', complete:'✓ complete', effort:'Effort', repNeed:'needs rep {n}', repRew:'reward +{n} rep',
     haveShort:'have {have}/{need}', offer:'offer', offers:'offers', noRes:'No resource found.', noOffers:'No offers for these filters.',
     exchange:'Exchange:', priceBuy:'buyable ≈ {p} aUEC/SCU', priceSell:'sell value ≈ {p} aUEC/SCU', avgUex:'UEX avg', avgMarket:'market avg',
@@ -501,7 +550,7 @@ const I18N = {
     toastReset:'Reset to build data', toastRefreshed:'Data refreshed · {n} offers, patch {p}',
     toastRefreshFail:'Refresh failed (source offline?) – existing data kept',
     toastBpFail:'Blueprints (star-head) unreachable', toastPriceFail:'Prices (UEX) unreachable',
-    toastSaved:'Stock saved as SC_Wikelo_Bestand.json', toastLoaded:'Stock loaded: {n} resources',
+    toastSaved:'Stock saved', toastLoaded:'Stock loaded: {n} resources',
     toastBadFile:'Invalid file (not a stock JSON)', toastPreload:'Stock preloaded from SC_Wikelo_Bestand.json',
     loading:'⏳ loading…', metaBuilt:'built {d}', metaRefreshed:'refreshed {d}',
     metaLine:'v{v} · patch {patch} · data {data} · {no} offers · {ni} resources · {fresh}' }
@@ -567,7 +616,7 @@ function transform(raw){
     meta:{ version:raw.version||'0.0.0', patch:(w.meta||{}).current_patch||'?', data_updated:(w.meta||{}).data_updated||'?',
            generated:raw.generated||'', source:raw.source||'build', n_offers:offers.length, n_ingredients:names.length },
     offers, currency_map, prices:raw.prices||{}, ingredients,
-    src_order:SRC_ORDER, cat_order:CAT_ORDER, saved_inv:raw.saved_inv||{},
+    src_order:SRC_ORDER, cat_order:CAT_ORDER, saved_inv:raw.saved_inv||{}, saved_acq:raw.saved_acq||{},
   };
 }
 
@@ -582,17 +631,31 @@ let DATA = transform(RAW);
 
 // ---- state ----
 let inv = {};
-let pref = {mode:'aufwand', myRep:0, onlyRep:false, showRetired:false, onlyHave:false, priceSrc:'beide', lang:'de'};
+let acq = {};   // {mission_name: {reward, ts}} – erworben markiert (per mission_name, refresh-stabil)
+let pref = {mode:'aufwand', myRep:0, onlyRep:false, showRetired:false, showAcquired:false, onlyHave:false, priceSrc:'beide', lang:'de'};
 let lsInv = null;
 try{ lsInv = JSON.parse(localStorage.getItem(LS_INV)||'null'); }catch(e){}
 if(lsInv && Object.keys(lsInv).length){ inv = lsInv; }
 else { inv = Object.assign({}, DATA.saved_inv||{}); }   // Vorbelegung aus SC_Wikelo_Bestand.json
+let lsAcq = null;
+try{ lsAcq = JSON.parse(localStorage.getItem(LS_ACQ)||'null'); }catch(e){}
+if(lsAcq && Object.keys(lsAcq).length){ acq = lsAcq; }
+else { acq = Object.assign({}, DATA.saved_acq||{}); }    // gleiche Vorbelegungs-Logik wie Bestand
 try{ Object.assign(pref, JSON.parse(localStorage.getItem(LS_PREF)||'{}')||{}); }catch(e){}
 
 function saveInv(){ try{localStorage.setItem(LS_INV, JSON.stringify(inv));}catch(e){} }
+function saveAcq(){ try{localStorage.setItem(LS_ACQ, JSON.stringify(acq));}catch(e){} }
 function savePref(){ try{localStorage.setItem(LS_PREF, JSON.stringify(pref));}catch(e){} }
 function have(n){ return inv[n]||0; }
 function setHave(n,q){ q=Math.max(0,Math.round(q||0)); if(q<=0) delete inv[n]; else inv[n]=q; saveInv(); rerenderAll(); }
+// Erworben-Markierung per mission_name (stabiler als die positionsabhaengige offer.id)
+function isAcq(o){ return !!(o && o.mission && acq[o.mission]); }
+function toggleAcq(mkey){
+  if(!mkey) return;
+  if(acq[mkey]){ delete acq[mkey]; toast(t('toastUnacq')); }
+  else { const o=DATA.offers.find(x=>x.mission===mkey); acq[mkey]={reward:o?o.reward:mkey, ts:new Date().toISOString()}; toast(t('toastAcq')); }
+  saveAcq(); rerenderAll();
+}
 
 // ---- helpers ----
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -700,7 +763,10 @@ function offerCard(o){
   const repBadge = o.rep_req? `<span class="badge ${locked?'lock':'rep'}">${t('repNeed',{n:o.rep_req})}${locked?' ⚠':''}</span>`:'';
   const rewBadge = o.rep_rew? `<span class="badge rep">${t('repRew',{n:o.rep_rew})}</span>`:'';
   const retBadge = retired? `<span class="badge ret">${esc(statusLabel(o.status))}</span>`:'';
-  return `<div class="card b${a.band} ${locked?'locked':''}" data-id="${o.id}">
+  const acqd = isAcq(o);
+  const acqBtn = `<button class="acq-btn${acqd?' on':''}" data-acq="1" title="${esc(t(acqd?'acqBtnUnmarkTitle':'acqBtnMarkTitle'))}">${t(acqd?'acqBtnUnmark':'acqBtnMark')}</button>`;
+  return `<div class="card b${a.band} ${locked?'locked':''}${acqd?' acquired':''}" data-mkey="${esc(o.mission)}">
+    ${acqBtn}
     <h3>${esc(o.reward||o.mission)}</h3>
     <span class="cat">${esc(catLabel(o.artkey))}</span>
     ${o.mission&&o.mission!==o.reward?`<div class="mission">„${esc(o.mission)}"</div>`:''}
@@ -714,6 +780,7 @@ function offerCard(o){
 }
 
 function passFilter(o,a){
+  if(isAcq(o) && !pref.showAcquired) return false;   // erworben -> ausgeblendet (ausser Anzeige aktiv)
   if(o.status!=='active' && !pref.showRetired) return false;
   if(pref.onlyRep && !a.repOk) return false;
   const q=($('#offerSearch').value||'').toLowerCase();
@@ -755,7 +822,16 @@ function renderOffers(){
   $('#offers').innerHTML = html || `<div class="empty">${t('noOffers')}</div>`;
 }
 
-function rerenderAll(){ renderRes(); renderOffers(); }
+function updateAcqCount(){
+  const el=$('#acqCount'); if(!el) return;
+  const total=Object.keys(acq).length;
+  el.textContent = total? t('acqCount',{n:total}) : '';
+  // Orphans = erworbene Angebote, deren mission_name in den aktuellen Daten fehlt (nach Refresh moeglich)
+  const present=new Set(DATA.offers.map(o=>o.mission));
+  const orphans=Object.entries(acq).filter(([k])=>!present.has(k)).map(([,v])=>v.reward);
+  el.title = orphans.length? t('acqOrphan',{n:orphans.length})+': '+orphans.join(', ') : '';
+}
+function rerenderAll(){ renderRes(); renderOffers(); updateAcqCount(); }
 
 // ---- Schnell-Eingabe (Kommando-Leiste) ----
 let quickMatches=[], quickIndex=0;
@@ -827,6 +903,8 @@ $('#resList').addEventListener('wheel', e=>{
 
 // ---- events: offers ----
 $('#offers').addEventListener('click', e=>{
+  const ab=e.target.closest('.acq-btn');
+  if(ab){ const card=ab.closest('.card'); if(card) toggleAcq(card.dataset.mkey); return; }
   const tog=e.target.closest('.tog');
   if(tog){ const d=tog.closest('.card').querySelector('.det'); if(d){ d.classList.toggle('open');
     tog.textContent = t('getMissing')+(d.classList.contains('open')?' ▴':' ▾'); } return; }
@@ -852,30 +930,78 @@ $('#onlyHave').addEventListener('change', e=>{pref.onlyHave=e.target.checked; sa
 $('#myRep').addEventListener('input', e=>{pref.myRep=+e.target.value||0; savePref(); renderOffers();});
 $('#onlyRep').addEventListener('change', e=>{pref.onlyRep=e.target.checked; savePref(); renderOffers();});
 $('#showRetired').addEventListener('change', e=>{pref.showRetired=e.target.checked; savePref(); renderOffers();});
+$('#showAcquired').addEventListener('change', e=>{pref.showAcquired=e.target.checked; savePref(); renderOffers();});
 $('#modeSeg').addEventListener('click', e=>{
   const b=e.target.closest('button[data-mode]'); if(!b) return;
   pref.mode=b.dataset.mode; savePref();
   $$('#modeSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderOffers();
 });
 
-// ---- Bestand speichern / laden (Datei) ----
-$('#btnSave').addEventListener('click', ()=>{
-  const blob=new Blob([JSON.stringify(inv,null,1)],{type:'application/json'});
+// ---- Bestand speichern / laden (Datei, freier Speicherort) ----
+// Speicherformat v2: {schema, inventory:{name:menge}, acquired:{mission:{reward,ts}}}.
+// Wo verfuegbar (Chromium, sicherer Kontext) nutzt Speichern/Laden die File System Access API,
+// sodass der Ort frei waehlbar ist und ein geladenes File beim naechsten Speichern zurueckgeschrieben
+// wird. Sonst Fallback auf Download / Datei-Auswahl. Unter file:// ist die API oft gesperrt -> Fallback.
+let fileHandle = null;   // zuletzt gewaehltes File (nur waehrend der Sitzung), fuer Wiederspeichern
+const FS_TYPES = [{description:'Wikelo-Bestand (JSON)', accept:{'application/json':['.json']}}];
+function buildSaveObject(){ return {schema:2, inventory:inv, acquired:acq}; }
+
+function downloadStock(text){
+  const blob=new Blob([text],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='SC_Wikelo_Bestand.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast(t('toastSaved'));
-});
-$('#btnLoad').addEventListener('click', ()=> $('#fileInput').click());
-$('#fileInput').addEventListener('change', e=>{
+}
+async function saveStock(){
+  const text=JSON.stringify(buildSaveObject(),null,1);
+  if(window.showSaveFilePicker){
+    try{
+      if(!fileHandle) fileHandle=await window.showSaveFilePicker({suggestedName:'SC_Wikelo_Bestand.json', types:FS_TYPES});
+      const w=await fileHandle.createWritable(); await w.write(text); await w.close();
+      toast(t('toastSaved')); return;
+    }catch(err){
+      fileHandle=null;
+      if(err && err.name==='AbortError') return;   // Nutzer hat Dialog abgebrochen -> NICHT herunterladen
+      // andere Fehler (kein Zugriff / file://): Fallback auf Download
+    }
+  }
+  downloadStock(text);
+}
+function applyLoaded(text){
+  try{
+    const o=JSON.parse(text);
+    if(typeof o!=='object'||o===null||Array.isArray(o)) throw 0;
+    // v2 mit inventory/acquired, sonst altes flaches {name:menge} = nur Bestand
+    const stock = (o.inventory && typeof o.inventory==='object') ? o.inventory : o;
+    const acquired = (o.inventory && o.acquired && typeof o.acquired==='object') ? o.acquired : {};
+    inv={}; for(const [k,v] of Object.entries(stock)){ const q=Math.max(0,Math.round(+v||0)); if(q>0) inv[k]=q; }
+    acq={}; for(const [k,v] of Object.entries(acquired)){
+      if(v && typeof v==='object') acq[k]={reward:v.reward||k, ts:v.ts||''};
+      else if(v) acq[k]={reward:k, ts:''};
+    }
+    saveInv(); saveAcq(); rerenderAll(); toast(t('toastLoaded',{n:Object.keys(inv).length}));
+  }catch(err){ toast(t('toastBadFile')); }
+}
+async function loadStock(){
+  if(window.showOpenFilePicker){
+    try{
+      const [h]=await window.showOpenFilePicker({types:FS_TYPES, multiple:false});
+      const f=await h.getFile(); const text=await f.text();
+      applyLoaded(text); fileHandle=h;   // gewaehltes File merken -> Speichern schreibt dorthin zurueck
+      return;
+    }catch(err){ if(err && err.name==='AbortError') return; /* sonst: Fallback */ }
+  }
+  $('#fileInput').click();
+}
+$('#btnSave').addEventListener('click', saveStock);
+$('#btnSave').addEventListener('contextmenu', e=>{ e.preventDefault(); fileHandle=null; saveStock(); });  // Rechtsklick: Speicherort neu waehlen
+$('#btnLoad').addEventListener('click', loadStock);
+$('#fileInput').addEventListener('change', e=>{   // Fallback ohne File System Access API
   const f=e.target.files[0]; if(!f) return;
   const rd=new FileReader();
-  rd.onload=()=>{ try{
-    const o=JSON.parse(rd.result); if(typeof o!=='object'||Array.isArray(o)) throw 0;
-    inv={}; for(const [k,v] of Object.entries(o)){ const q=Math.max(0,Math.round(+v||0)); if(q>0) inv[k]=q; }
-    saveInv(); rerenderAll(); toast(t('toastLoaded',{n:Object.keys(inv).length}));
-  }catch(err){ toast(t('toastBadFile')); } };
+  rd.onload=()=>applyLoaded(rd.result);
   rd.readAsText(f); e.target.value='';
 });
 $('#btnReset').addEventListener('click', ()=>{ if(confirm(t('confirmClear'))){ inv={}; saveInv(); rerenderAll(); } });
@@ -924,7 +1050,7 @@ async function refreshData(){
     let prices={};
     if(src==='uex'||src==='beide'){ try{ prices=await fetchPricesUex(needOreBases(names)); }catch(e){ toast(t('toastPriceFail')); } }
     const newRaw={ schema:RAW_BAKED.schema, version:RAW_BAKED.version, generated:new Date().toISOString().slice(0,10),
-      source:'refresh', wikelo:w, blueprints, prices, saved_inv:(RAW.saved_inv||{}) };
+      source:'refresh', wikelo:w, blueprints, prices, saved_inv:(RAW.saved_inv||{}), saved_acq:(RAW.saved_acq||{}) };
     RAW=newRaw; DATA=transform(RAW);
     try{ localStorage.setItem(LS_RAW, JSON.stringify(newRaw)); }catch(e){}
     updateMeta(); rerenderAll();
@@ -965,7 +1091,7 @@ applyStaticI18n();
 updateMeta();
 $('#priceSrc').value = pref.priceSrc||'beide';
 $('#myRep').value=pref.myRep||0; $('#onlyRep').checked=!!pref.onlyRep;
-$('#showRetired').checked=!!pref.showRetired; $('#onlyHave').checked=!!pref.onlyHave;
+$('#showRetired').checked=!!pref.showRetired; $('#showAcquired').checked=!!pref.showAcquired; $('#onlyHave').checked=!!pref.onlyHave;
 $$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.mode===pref.mode));
 if(!lsInv && Object.keys(inv).length) toast(t('toastPreload'));
 rerenderAll();

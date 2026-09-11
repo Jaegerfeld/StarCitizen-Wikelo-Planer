@@ -4,6 +4,26 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.2.0] – 2026-09-11
+
+### Hinzugefügt
+- **Erworbene Angebote markieren & ausblenden:** Button „✓ erworben" auf jeder Angebots-Karte
+  markiert ein bereits erhaltenes Wikelo-Produkt und blendet es aus. Persistiert (eigener
+  `localStorage`-Schlüssel) und wird in der Bestandsdatei mitgespeichert. Kopfzeilen-Schalter
+  „erworbene zeigen" holt sie zum Aufheben der Markierung zurück. Identität über den stabilen
+  `mission_name` (nicht die positionsabhängige `id`), damit die Markierung eine
+  In-App-Aktualisierung übersteht; nach Refresh nicht mehr auffindbare Einträge bleiben erhalten
+  und werden als Tooltip angezeigt statt still verworfen.
+- **Freier Speicherort:** Speichern/Laden nutzt – wo verfügbar (Chromium, sicherer Kontext) –
+  die File System Access API, sodass Ort und Dateiname frei wählbar sind und ein geladenes File
+  beim erneuten Speichern zurückgeschrieben wird (Rechtsklick auf „Speichern" = Ort neu wählen).
+  Fallback auf Download/Datei-Auswahl, wo die API fehlt (z. B. Firefox, `file://`).
+
+### Geändert
+- Bestandsdatei-Format erweitert auf `{schema, inventory, acquired}`; altes flaches
+  `{name: menge}` wird weiterhin gelesen (abwärtskompatibel). Generator und App lesen beide
+  Formate.
+
 ## [1.1.1] – 2026-08-22
 
 ### Geändert
@@ -51,6 +71,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - `experimental/ocr/` – Windows-OCR-Vorarbeit zum Auslesen des Inventars.
   Derzeit blockiert, weil das SC-Inventar nur Icons ohne Namen zeigt (siehe README dort).
 
+[1.2.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.2.0
 [1.1.1]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.0.0
