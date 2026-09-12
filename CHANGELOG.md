@@ -4,6 +4,19 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.3.0] – 2026-09-12
+
+### Hinzugefügt
+- **In-App-Changelog:** Button „🆕 Was ist neu?" öffnet ein Fenster mit dieser
+  Änderungshistorie – offline in die HTML eingebacken (Generator liest `CHANGELOG.md`),
+  plus Link zur vollständigen Fassung auf GitHub.
+
+### Behoben
+- Beschaffungs-Hinweis für Erze versprach „(Preis siehe unten)", obwohl aktuell kein
+  Preis vorliegt (UEX liefert für die neuen Erze nur Platzhalter, die der
+  Plausibilitätsfilter verwirft). Der Zusatz entfällt; ein Preis wird nur noch
+  angezeigt, wenn tatsächlich einer vorhanden ist.
+
 ## [1.2.0] – 2026-09-11
 
 ### Hinzugefügt
@@ -71,6 +84,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - `experimental/ocr/` – Windows-OCR-Vorarbeit zum Auslesen des Inventars.
   Derzeit blockiert, weil das SC-Inventar nur Icons ohne Namen zeigt (siehe README dort).
 
+[1.3.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.3.0
 [1.2.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.2.0
 [1.1.1]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/releases/tag/v1.1.0

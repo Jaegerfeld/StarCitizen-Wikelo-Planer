@@ -384,6 +384,23 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
   border:1px solid var(--gold2);color:var(--txt);padding:9px 16px;border-radius:8px;z-index:50;
   opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
+/* Changelog-Modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:60;display:none;
+  align-items:center;justify-content:center;padding:20px}
+.modal.open{display:flex}
+.modal-box{background:var(--panel);border:1px solid var(--gold2);border-radius:12px;
+  max-width:720px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line)}
+.modal-head b{font-size:15px;color:var(--gold)}
+.modal-body{overflow:auto;padding:4px 18px 12px}
+.modal-body h3{color:var(--gold);font-size:15px;margin:16px 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.modal-body h4{font-size:11.5px;color:var(--gold2);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 3px}
+.modal-body ul{margin:3px 0;padding-left:20px}
+.modal-body li{margin:3px 0;line-height:1.4}
+.modal-body p{color:var(--dim);line-height:1.4;margin:6px 0}
+.modal-body code{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:12px}
+.modal-body a{word-break:break-word}
+.modal-foot{padding:10px 16px;border-top:1px solid var(--line);text-align:right;font-size:12.5px}
 /* Responsive-Overrides ganz am Ende, damit sie die Basis-Regeln ueberschreiben */
 @media(max-width:900px){
   main{grid-template-columns:1fr}
@@ -398,6 +415,7 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
     <h1>SC <span class="sub">Wikelo</span> Ressourcen-Planer</h1>
     <span class="meta" id="meta"></span>
     <span style="flex:1 1 auto"></span>
+    <button class="btn" id="btnChangelog" data-i18n="btnChangelog">🆕 Was ist neu?</button>
     <div class="seg" id="langSeg"><button data-lang="de">DE</button><button data-lang="en">EN</button></div>
   </div>
   <div class="controls">
@@ -465,7 +483,16 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
 
 <div class="toast" id="toast"></div>
 
+<div class="modal" id="clModal">
+  <div class="modal-box">
+    <div class="modal-head"><b data-i18n="clTitle">Was ist neu?</b><button class="btn" id="clClose" aria-label="close">✕</button></div>
+    <div class="modal-body" id="clBody"></div>
+    <div class="modal-foot"><a id="clGh" href="https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/blob/main/CHANGELOG.md" target="_blank" rel="noopener" data-i18n="clGh">Vollständiges Changelog auf GitHub ↗</a></div>
+  </div>
+</div>
+
 <script id="wikelo-raw" type="application/json">/*__RAW__*/</script>
+<script id="changelog-md" type="application/json">/*__CHANGELOG__*/</script>
 <script>
 const LS_INV = 'sc_wikelo_inv_v1', LS_PREF = 'sc_wikelo_pref_v1', LS_RAW = 'sc_wikelo_raw_v2';
 const LS_ACQ = 'sc_wikelo_acq_v1';   // als erworben markierte Angebote (Schluessel = mission_name, stabil)
@@ -488,8 +515,8 @@ const SRC_LABEL = {
   de:{currency:'Wikelo/Währung',mining:'Mining/Erz',creature:'Creature/Loot',salvage:'Salvage/Vanduul',cz:'CZ/Tech-Loot',loot:'Missions-/Beute-Item',craft:'Craftbar (Bauplan)',item:'Item/Sonstiges'},
   en:{currency:'Wikelo/Currency',mining:'Mining/Ore',creature:'Creature/Loot',salvage:'Salvage/Vanduul',cz:'Contested Zone/Tech Loot',loot:'Mission/Rare Loot',craft:'Craftable (Blueprint)',item:'Item/Other'}};
 const SRC_HINT = {
-  de:{currency:'Wikelo-Favor/Scrip – per Tausch (siehe unten)',mining:'Mining / teils kaufbar (Preis siehe unten)',creature:'Creature-Jagd (Valakkar / Kopion / Yormandi)',salvage:'Salvage / Vanduul-Gebiete',cz:'Contested Zones / Tech-Loot (PvP-Risiko)',loot:'Missionsbelohnung / seltener Loot',craft:'Craften – Rezept siehe unten',item:'Kauf / Loot'},
-  en:{currency:'Wikelo Favor/Scrip – via exchange (see below)',mining:'Mining / partly buyable (price below)',creature:'Creature hunt (Valakkar / Kopion / Yormandi)',salvage:'Salvage / Vanduul areas',cz:'Contested Zones / tech loot (PvP risk)',loot:'Mission reward / rare loot',craft:'Craft it – recipe below',item:'Buy / loot'}};
+  de:{currency:'Wikelo-Favor/Scrip – per Tausch (siehe unten)',mining:'Mining / teils kaufbar',creature:'Creature-Jagd (Valakkar / Kopion / Yormandi)',salvage:'Salvage / Vanduul-Gebiete',cz:'Contested Zones / Tech-Loot (PvP-Risiko)',loot:'Missionsbelohnung / seltener Loot',craft:'Craften – Rezept siehe unten',item:'Kauf / Loot'},
+  en:{currency:'Wikelo Favor/Scrip – via exchange (see below)',mining:'Mining / partly buyable',creature:'Creature hunt (Valakkar / Kopion / Yormandi)',salvage:'Salvage / Vanduul areas',cz:'Contested Zones / tech loot (PvP risk)',loot:'Mission reward / rare loot',craft:'Craft it – recipe below',item:'Buy / loot'}};
 const BAND_LABEL = {
   de:['Sofort verfügbar','1 Zutat fehlt','2 Zutaten fehlen','3+ Zutaten fehlen'],
   en:['Available now','1 ingredient missing','2 ingredients missing','3+ ingredients missing']};
@@ -501,6 +528,7 @@ const I18N = {
     btnLoad:'📂 Bestand laden', btnReset:'leeren', priceLabel:'Preise:',
     priceBoth:'beide (star-head + UEX)', priceUex:'nur UEX', priceSh:'nur star-head',
     btnRefresh:'🔄 Daten aktualisieren', btnRefreshTitle:'Angebote + Baupläne + Preise live neu laden',
+    btnChangelog:'🆕 Was ist neu?', clTitle:'Was ist neu?', clGh:'Vollständiges Changelog auf GitHub ↗',
     panelTitle:'Mein Ressourcen-Bestand', quickPh:'⚡ Schnell-Eingabe: z. B. „carinite 50" · Enter',
     quickHint:'„name zahl" setzt · „name +zahl" addiert · nur „name" = +1 · ↑↓ wählen, Enter übernehmen',
     resSearchPh:'Ressource suchen…', onlyHave:'nur „hab ich" zeigen',
@@ -531,6 +559,7 @@ const I18N = {
     btnLoad:'📂 Load stock', btnReset:'clear', priceLabel:'Prices:',
     priceBoth:'both (star-head + UEX)', priceUex:'UEX only', priceSh:'star-head only',
     btnRefresh:'🔄 Refresh data', btnRefreshTitle:'Reload offers + blueprints + prices live',
+    btnChangelog:'🆕 What\'s new?', clTitle:'What\'s new?', clGh:'Full changelog on GitHub ↗',
     panelTitle:'My resource stock', quickPh:'⚡ Quick entry: e.g. "carinite 50" · Enter',
     quickHint:'"name number" sets · "name +number" adds · just "name" = +1 · ↑↓ to choose, Enter to apply',
     resSearchPh:'Search resource…', onlyHave:'show only "have"',
@@ -1085,6 +1114,40 @@ $('#langSeg').addEventListener('click', e=>{
   applyStaticI18n(); updateMeta(); rerenderAll();
 });
 
+// ---- Changelog-Modal (offline, aus eingebackenem CHANGELOG.md) ----
+let CHANGELOG_MD='';
+try{ CHANGELOG_MD = JSON.parse(document.getElementById('changelog-md').textContent)||''; }catch(e){}
+function clInline(s){   // minimales Markdown-Inline: **fett**, `code`, [text](url)
+  let out=esc(s);
+  out=out.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  out=out.replace(/`([^`]+)`/g,'<code>$1</code>');
+  out=out.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,(m,txt,url)=>`<a href="${url}" target="_blank" rel="noopener">${txt}</a>`);
+  return out;
+}
+function renderChangelogHtml(md){
+  const lines=String(md).split(/\r?\n/); let html='', inList=false, m;
+  const close=()=>{ if(inList){ html+='</ul>'; inList=false; } };
+  for(const raw of lines){
+    const line=raw.replace(/\s+$/,'');
+    if(/^\[[^\]]+\]:\s*https?:/.test(line)) continue;   // Referenz-Link-Definitionen weglassen
+    if(!line.trim()){ close(); continue; }
+    if(/^#\s+/.test(line)){ close(); continue; }        // Top-Ueberschrift "Changelog" weglassen
+    else if(m=line.match(/^##\s+(.*)/)){ close(); html+=`<h3>${clInline(m[1])}</h3>`; }
+    else if(m=line.match(/^###\s+(.*)/)){ close(); html+=`<h4>${clInline(m[1])}</h4>`; }
+    else if(m=line.match(/^[-*]\s+(.*)/)){ if(!inList){ html+='<ul>'; inList=true; } html+=`<li>${clInline(m[1])}</li>`; }
+    else if(inList && /^\s+\S/.test(raw)){ html=html.replace(/<\/li>$/,' '+clInline(line.trim())+'</li>'); }  // Fortsetzung der Zeile
+    else { close(); html+=`<p>${clInline(line)}</p>`; }
+  }
+  close();
+  return html;
+}
+function openChangelog(){ $('#clBody').innerHTML = renderChangelogHtml(CHANGELOG_MD) || '<p>—</p>'; $('#clModal').classList.add('open'); }
+function closeChangelog(){ $('#clModal').classList.remove('open'); }
+$('#btnChangelog').addEventListener('click', openChangelog);
+$('#clClose').addEventListener('click', closeChangelog);
+$('#clModal').addEventListener('click', e=>{ if(e.target.id==='clModal') closeChangelog(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeChangelog(); });
+
 // ---- init ----
 LANG = pref.lang || 'de';
 applyStaticI18n();
@@ -1106,6 +1169,13 @@ def main():
     payload = json.dumps(raw, ensure_ascii=False, separators=(",", ":"))
     payload = payload.replace("</", "<\\/")
     html = HTML_TEMPLATE.replace("/*__RAW__*/", payload)
+    # CHANGELOG.md fuer den In-App-"Was ist neu?"-Dialog einbacken (offline, kein externer Abruf).
+    changelog = ""
+    clpath = OUTDIR / "CHANGELOG.md"
+    if clpath.exists():
+        changelog = clpath.read_text(encoding="utf-8")
+    cl_payload = json.dumps(changelog, ensure_ascii=False).replace("</", "<\\/")
+    html = html.replace("/*__CHANGELOG__*/", cl_payload)
     OUTHTML.write_text(html, encoding="utf-8")
     n_off = len(raw["wikelo"]["ships"]) + len(raw["wikelo"]["items"]) + 1
     n_pr = sum(1 for v in raw["prices"].values() if v.get("buy") or v.get("sell"))
