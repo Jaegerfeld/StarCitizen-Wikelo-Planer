@@ -415,6 +415,7 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
     <h1>SC <span class="sub">Wikelo</span> Ressourcen-Planer</h1>
     <span class="meta" id="meta"></span>
     <span style="flex:1 1 auto"></span>
+    <a class="btn" href="https://jaegerfeld.github.io/StarCitizen-Bauplan-Planer/" target="_blank" rel="noopener" style="text-decoration:none" title="Zum Bauplan-Planer wechseln">🔀 <span data-i18n="btnSwap">Bauplan-Planer</span></a>
     <button class="btn" id="btnChangelog" data-i18n="btnChangelog">🆕 Was ist neu?</button>
     <div class="seg" id="langSeg"><button data-lang="de">DE</button><button data-lang="en">EN</button></div>
   </div>
@@ -528,7 +529,7 @@ const I18N = {
     btnLoad:'📂 Bestand laden', btnReset:'leeren', priceLabel:'Preise:',
     priceBoth:'beide (star-head + UEX)', priceUex:'nur UEX', priceSh:'nur star-head',
     btnRefresh:'🔄 Daten aktualisieren', btnRefreshTitle:'Angebote + Baupläne + Preise live neu laden',
-    btnChangelog:'🆕 Was ist neu?', clTitle:'Was ist neu?', clGh:'Vollständiges Changelog auf GitHub ↗',
+    btnChangelog:'🆕 Was ist neu?', btnSwap:'Bauplan-Planer', clTitle:'Was ist neu?', clGh:'Vollständiges Changelog auf GitHub ↗',
     panelTitle:'Mein Ressourcen-Bestand', quickPh:'⚡ Schnell-Eingabe: z. B. „carinite 50" · Enter',
     quickHint:'„name zahl" setzt · „name +zahl" addiert · nur „name" = +1 · ↑↓ wählen, Enter übernehmen',
     resSearchPh:'Ressource suchen…', onlyHave:'nur „hab ich" zeigen',
@@ -559,7 +560,7 @@ const I18N = {
     btnLoad:'📂 Load stock', btnReset:'clear', priceLabel:'Prices:',
     priceBoth:'both (star-head + UEX)', priceUex:'UEX only', priceSh:'star-head only',
     btnRefresh:'🔄 Refresh data', btnRefreshTitle:'Reload offers + blueprints + prices live',
-    btnChangelog:'🆕 What\'s new?', clTitle:'What\'s new?', clGh:'Full changelog on GitHub ↗',
+    btnChangelog:'🆕 What\'s new?', btnSwap:'Blueprint Planner', clTitle:'What\'s new?', clGh:'Full changelog on GitHub ↗',
     panelTitle:'My resource stock', quickPh:'⚡ Quick entry: e.g. "carinite 50" · Enter',
     quickHint:'"name number" sets · "name +number" adds · just "name" = +1 · ↑↓ to choose, Enter to apply',
     resSearchPh:'Search resource…', onlyHave:'show only "have"',

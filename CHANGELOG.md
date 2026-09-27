@@ -4,6 +4,11 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.3.1] – 2026-09-27
+
+### Hinzugefügt
+- **Wechsel-Button** in der Kopfzeile zum [Bauplan-Planer](https://jaegerfeld.github.io/StarCitizen-Bauplan-Planer/) (Schwester-Tool für craftbare Baupläne).
+
 ## [1.3.0] – 2026-09-12
 
 ### Hinzugefügt
