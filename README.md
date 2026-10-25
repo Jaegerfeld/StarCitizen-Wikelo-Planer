@@ -27,8 +27,10 @@ is **bilingual (English/German)**, switchable in the header.
   log-scaled. "Wikelo Arrive" ≈ 1★, an Idris ≈ 5★.
 - **"Get missing"** per offer — blueprint recipes for craftable ingredients, Wikelo Favor exchange
   paths, ore price hints.
-- **Refresh data in-app** — reload offers (seeknd), blueprints (star-head) and ore prices (UEX)
-  live in the browser; cached locally, offline build stays as fallback.
+- **Daily data:** the online version is rebuilt every day (GitHub Actions, 05:00 UTC). The in-app
+  button **Load latest build (GitHub)** fetches that build's `data.json` from GitHub Pages — also
+  from an offline copy — instead of hitting seeknd, star-head and UEX directly; cached locally,
+  right-click resets to the built-in data.
 - **Reputation filter**, hide retired offers, **save/load stock** as `SC_Wikelo_Bestand.json`.
 
 ## Rebuild / update the bundled data
@@ -38,7 +40,7 @@ is **bilingual (English/German)**, switchable in the header.
 - **direct:** `python wikelo_planer_bauen.py`
 
 Requires **Python 3.9+**, **no external packages** (standard library only). Produces
-`SC_Wikelo_Planer.html` in the same folder. You can also just hit **Refresh data** inside the app.
+`SC_Wikelo_Planer.html` in the same folder. Or just hit **Load latest build (GitHub)** inside the app.
 
 ## Data sources & credits
 

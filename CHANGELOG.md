@@ -4,6 +4,12 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.4.0] – 2026-10-25
+
+### Geändert
+- **Aktualisierung läuft über GitHub:** Die Online-Version wird täglich (05:00 UTC) per GitHub Actions neu gebaut; dabei entsteht neben der HTML eine `data.json` mit demselben Datenstand (ohne persönlichen Bestand).
+- **Knopf „Daten aktualisieren“ → „Neuesten Stand laden (GitHub)“:** lädt die `data.json` des letzten Builds von GitHub Pages statt seeknd, `api.star-head.de/blueprint` und UEX direkt aus dem Browser. Das schont die Community-Quellen (eine Abfrage pro Tag statt eine pro Klick). Funktioniert auch aus der Offline-Kopie; Rechtsklick setzt wie bisher auf die eingebauten Build-Daten zurück. Meldet, wenn der Stand schon aktuell ist.
+
 ## [1.3.1] – 2026-09-27
 
 ### Hinzugefügt
