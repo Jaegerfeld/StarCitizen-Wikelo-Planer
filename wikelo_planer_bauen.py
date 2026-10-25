@@ -36,6 +36,8 @@ HOST     = "seeknd.github.io"
 BASEPATH = "/Wikelo/"
 OUTDIR   = pathlib.Path(__file__).resolve().parent   # Skript-Ordner (laeuft auf jedem PC / in CI)
 OUTHTML  = OUTDIR / "SC_Wikelo_Planer.html"
+OUTJSON  = OUTDIR / "data.json"   # gleicher Datenstand als Datei (fuer den Knopf in der App, via Pages)
+DATA_URL = "https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/data.json"
 BESTAND  = OUTDIR / "SC_Wikelo_Bestand.json"
 STAMP    = datetime.date.today().isoformat()
 try:
@@ -443,7 +445,7 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
         <option value="starhead" data-i18n="priceSh">nur star-head</option>
       </select>
     </label>
-    <button class="btn" id="btnRefresh" data-i18n="btnRefresh" data-i18n-title="btnRefreshTitle" title="Angebote + Baupläne + Preise live neu laden">🔄 Daten aktualisieren</button>
+    <button class="btn" id="btnRefresh" data-i18n="btnRefresh" data-i18n-title="btnRefreshTitle" title="Neuesten täglich gebauten Datenstand von GitHub laden">🔄 Neuesten Stand laden (GitHub)lisieren</button>
   </div>
 </header>
 
@@ -528,7 +530,7 @@ const I18N = {
     btnSave:'💾 Bestand speichern', btnSaveTitle:'Klick: speichern · Rechtsklick: Speicherort neu wählen',
     btnLoad:'📂 Bestand laden', btnReset:'leeren', priceLabel:'Preise:',
     priceBoth:'beide (star-head + UEX)', priceUex:'nur UEX', priceSh:'nur star-head',
-    btnRefresh:'🔄 Daten aktualisieren', btnRefreshTitle:'Angebote + Baupläne + Preise live neu laden',
+    btnRefresh:'🔄 Neuesten Stand laden (GitHub)', btnRefreshTitle:'Neuesten täglich gebauten Datenstand von GitHub laden (Rechtsklick: auf Build-Daten zurücksetzen)',
     btnChangelog:'🆕 Was ist neu?', btnSwap:'Bauplan-Planer', clTitle:'Was ist neu?', clGh:'Vollständiges Changelog auf GitHub ↗',
     panelTitle:'Mein Ressourcen-Bestand', quickPh:'⚡ Schnell-Eingabe: z. B. „carinite 50" · Enter',
     quickHint:'„name zahl" setzt · „name +zahl" addiert · nur „name" = +1 · ↑↓ wählen, Enter übernehmen',
@@ -546,12 +548,12 @@ const I18N = {
     haveShort:'hast {have}/{need}', offer:'Angebot', offers:'Angebote', noRes:'Keine Ressource gefunden.', noOffers:'Keine Angebote für diese Filter.',
     exchange:'Tausch:', priceBuy:'kaufbar ≈ {p} aUEC/SCU', priceSell:'Verkaufswert ≈ {p} aUEC/SCU', avgUex:'Ø UEX', avgMarket:'Ø Markt',
     confirmClear:'Wirklich den ganzen Bestand leeren?', confirmReset:'Auf die eingebauten Build-Daten zurücksetzen (gecachte Aktualisierung verwerfen)?',
-    toastReset:'Auf Build-Daten zurückgesetzt', toastRefreshed:'Daten aktualisiert · {n} Angebote, Patch {p}',
-    toastRefreshFail:'Aktualisierung fehlgeschlagen (Quelle offline?) – bestehende Daten bleiben',
+    toastReset:'Auf Build-Daten zurückgesetzt', toastRefreshed:'Neuester Stand geladen · {n} Angebote, Patch {p}', toastSame:'Du hast bereits den neuesten Stand.',
+    toastRefreshFail:'GitHub nicht erreichbar – bestehende Daten bleiben',
     toastBpFail:'Baupläne (star-head) nicht erreichbar', toastPriceFail:'Preise (UEX) nicht erreichbar',
     toastSaved:'Bestand gespeichert', toastLoaded:'Bestand geladen: {n} Ressourcen',
     toastBadFile:'Ungültige Datei (kein Bestand-JSON)', toastPreload:'Bestand aus SC_Wikelo_Bestand.json vorgeladen',
-    loading:'⏳ lädt…', metaBuilt:'gebaut {d}', metaRefreshed:'aktualisiert {d}',
+    loading:'⏳ lädt…', metaBuilt:'gebaut {d}', metaRefreshed:'GitHub-Stand {d}',
     metaLine:'v{v} · Patch {patch} · Daten {data} · {no} Angebote · {ni} Ressourcen · {fresh}' },
   en:{ modeEffort:'By effort', modeGroup:'By category', repLabel:'My Wikelo reputation:',
     onlyRep:'only reachable rep', showRetired:'show retired', showAcquired:'show acquired',
@@ -559,7 +561,7 @@ const I18N = {
     btnSave:'💾 Save stock', btnSaveTitle:'Click: save · Right-click: choose new location',
     btnLoad:'📂 Load stock', btnReset:'clear', priceLabel:'Prices:',
     priceBoth:'both (star-head + UEX)', priceUex:'UEX only', priceSh:'star-head only',
-    btnRefresh:'🔄 Refresh data', btnRefreshTitle:'Reload offers + blueprints + prices live',
+    btnRefresh:'🔄 Load latest build (GitHub)', btnRefreshTitle:'Load the latest daily build from GitHub (right-click: reset to built-in data)',
     btnChangelog:'🆕 What\'s new?', btnSwap:'Blueprint Planner', clTitle:'What\'s new?', clGh:'Full changelog on GitHub ↗',
     panelTitle:'My resource stock', quickPh:'⚡ Quick entry: e.g. "carinite 50" · Enter',
     quickHint:'"name number" sets · "name +number" adds · just "name" = +1 · ↑↓ to choose, Enter to apply',
@@ -577,12 +579,12 @@ const I18N = {
     haveShort:'have {have}/{need}', offer:'offer', offers:'offers', noRes:'No resource found.', noOffers:'No offers for these filters.',
     exchange:'Exchange:', priceBuy:'buyable ≈ {p} aUEC/SCU', priceSell:'sell value ≈ {p} aUEC/SCU', avgUex:'UEX avg', avgMarket:'market avg',
     confirmClear:'Really clear the entire stock?', confirmReset:'Reset to the built-in build data (discard cached refresh)?',
-    toastReset:'Reset to build data', toastRefreshed:'Data refreshed · {n} offers, patch {p}',
-    toastRefreshFail:'Refresh failed (source offline?) – existing data kept',
+    toastReset:'Reset to build data', toastRefreshed:'Latest build loaded · {n} offers, patch {p}', toastSame:'You already have the latest build.',
+    toastRefreshFail:'GitHub unreachable – existing data kept',
     toastBpFail:'Blueprints (star-head) unreachable', toastPriceFail:'Prices (UEX) unreachable',
     toastSaved:'Stock saved', toastLoaded:'Stock loaded: {n} resources',
     toastBadFile:'Invalid file (not a stock JSON)', toastPreload:'Stock preloaded from SC_Wikelo_Bestand.json',
-    loading:'⏳ loading…', metaBuilt:'built {d}', metaRefreshed:'refreshed {d}',
+    loading:'⏳ loading…', metaBuilt:'built {d}', metaRefreshed:'GitHub build {d}',
     metaLine:'v{v} · patch {patch} · data {data} · {no} offers · {ni} resources · {fresh}' }
 };
 function t(k,p){ let s=(I18N[LANG]&&I18N[LANG][k]!=null)?I18N[LANG][k]:(I18N.de[k]!=null?I18N.de[k]:k);
@@ -1037,6 +1039,7 @@ $('#fileInput').addEventListener('change', e=>{   // Fallback ohne File System A
 $('#btnReset').addEventListener('click', ()=>{ if(confirm(t('confirmClear'))){ inv={}; saveInv(); rerenderAll(); } });
 
 // ---- In-App-Datenaktualisierung (Refresh) ----
+const DATA_URL='https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/data.json';
 const EP = {
   wikelo:     'https://seeknd.github.io/Wikelo/data/wikelo_data.json',
   blueprints: 'https://api.star-head.de/blueprint',
@@ -1069,18 +1072,15 @@ async function fetchPricesUex(bases){
   return out;
 }
 async function refreshData(){
+  // Lädt den zuletzt auf GitHub gebauten Datenstand (täglich 05:00 UTC). Kein Direktzugriff
+  // auf star-head/seeknd/UEX aus dem Browser mehr – das schont die Community-Quellen.
   const btn=$('#btnRefresh'); if(btn.dataset.busy) return;
   btn.dataset.busy='1'; btn.disabled=true; const label=btn.textContent; btn.textContent=t('loading');
   try{
-    const w0=await getJSON(EP.wikelo);
-    const w={ meta:w0.meta||{}, ships:w0.ships||[], items:w0.items||[], intro_mission:w0.intro_mission||{}, currency_exchanges:w0.currency_exchanges||[] };
-    const names=ingredientNamesFrom(w), src=pref.priceSrc||'beide';
-    let blueprints=[];
-    if(src!=='uex'){ try{ blueprints=await fetchBlueprints(names); }catch(e){ toast(t('toastBpFail')); } }
-    let prices={};
-    if(src==='uex'||src==='beide'){ try{ prices=await fetchPricesUex(needOreBases(names)); }catch(e){ toast(t('toastPriceFail')); } }
-    const newRaw={ schema:RAW_BAKED.schema, version:RAW_BAKED.version, generated:new Date().toISOString().slice(0,10),
-      source:'refresh', wikelo:w, blueprints, prices, saved_inv:(RAW.saved_inv||{}), saved_acq:(RAW.saved_acq||{}) };
+    const g=await getJSON(DATA_URL);
+    if(!g || g.schema!==RAW_BAKED.schema || !g.wikelo) throw new Error('schema');
+    if(g.generated && g.generated===RAW.generated && RAW.source==='refresh'){ toast(t('toastSame')); return; }
+    const newRaw=Object.assign({}, g, { source:'refresh', saved_inv:(RAW.saved_inv||{}), saved_acq:(RAW.saved_acq||{}) });
     RAW=newRaw; DATA=transform(RAW);
     try{ localStorage.setItem(LS_RAW, JSON.stringify(newRaw)); }catch(e){}
     updateMeta(); rerenderAll();
@@ -1178,6 +1178,11 @@ def main():
     cl_payload = json.dumps(changelog, ensure_ascii=False).replace("</", "<\\/")
     html = html.replace("/*__CHANGELOG__*/", cl_payload)
     OUTHTML.write_text(html, encoding="utf-8")
+    # data.json: derselbe Stand ohne den persoenlichen Bestand. Der Knopf "Neuesten
+    # Stand laden" in der App holt diese Datei von GitHub Pages statt star-head/seeknd/UEX.
+    pub = {k: v for k, v in raw.items() if k not in ("saved_inv", "saved_acq")}
+    OUTJSON.write_text(json.dumps(pub, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print("gespeichert:", OUTJSON)
     n_off = len(raw["wikelo"]["ships"]) + len(raw["wikelo"]["items"]) + 1
     n_pr = sum(1 for v in raw["prices"].values() if v.get("buy") or v.get("sell"))
     print("gespeichert:", OUTHTML)

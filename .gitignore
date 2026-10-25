@@ -1,6 +1,10 @@
 # Persönlicher Bestand (nicht ins Repo)
 SC_Wikelo_Bestand.json
 
+# Entsteht beim Bauen, wird nur auf GitHub Pages veröffentlicht
+data.json
+_site/
+
 # OCR-Zwischendateien
 SC_Wikelo_OCR_words.json
 experimental/ocr/*.png

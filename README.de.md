@@ -27,8 +27,10 @@ Die Oberfläche ist **zweisprachig (Deutsch/Englisch)**, umschaltbar im Header.
   log-gestaucht. „Wikelo Arrive" ≈ 1★, eine Idris ≈ 5★.
 - **„Fehlendes beschaffen"** je Angebot – Bauplan-Rezepte für craftbare Zutaten, Wikelo-Favor-Umrechnung,
   Erz-Preis-Hinweise.
-- **Daten in der App aktualisieren** – Angebote (seeknd), Baupläne (star-head) und Erz-Preise (UEX)
-  live im Browser nachladen; lokal gecacht, Offline-Build bleibt als Fallback.
+- **Täglich frische Daten:** die Online-Version wird jeden Tag neu gebaut (GitHub Actions, 05:00 UTC).
+  Der Knopf **„Neuesten Stand laden (GitHub)“** in der App holt die `data.json` dieses Builds von
+  GitHub Pages – auch aus einer Offline-Kopie heraus – statt seeknd, star-head und UEX direkt
+  abzufragen; lokal gecacht, Rechtsklick setzt auf die eingebauten Daten zurück.
 - **Reputations-Filter**, zurückgezogene ausblenden, **Bestand speichern/laden** als `SC_Wikelo_Bestand.json`.
 
 ## Selbst neu bauen / aktualisieren
@@ -38,7 +40,7 @@ Die Oberfläche ist **zweisprachig (Deutsch/Englisch)**, umschaltbar im Header.
 - **direkt:** `python wikelo_planer_bauen.py`
 
 Voraussetzung: **Python 3.9+**, **keine** externen Pakete (nur Standardbibliothek). Erzeugt
-`SC_Wikelo_Planer.html` im selben Ordner. Alternativ einfach **„Daten aktualisieren"** in der App.
+`SC_Wikelo_Planer.html` im selben Ordner. Alternativ einfach **„Neuesten Stand laden (GitHub)“** in der App.
 
 ## Datenquellen & Credits
 
