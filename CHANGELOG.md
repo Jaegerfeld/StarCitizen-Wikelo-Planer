@@ -4,6 +4,20 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.6.0] – 2026-11-01
+
+### Hinzugefügt
+- **Gemeinsames Design** aller vier SC-Tools in `sc_design.py` (in allen vier Repos identisch, wie `kopfzeile.py`): Farben für Hell und Dunkel, Schriften (Rajdhani für Überschriften, Exo 2 für Text), Knöpfe, Eingabefelder, Fokusrahmen, Lösch-Knopf-Stil.
+- **Handy und Tablet:** Auf schmalen Bildschirmen (unter 920 px) zeigen Tools mit mehreren Bereichen oben Reiter statt nebeneinanderliegender Spalten; der Hauptinhalt kommt zuerst. Auf Touch-Geräten sind Knöpfe, Felder und Häkchen mindestens 44 px groß. Kein seitliches Scrollen mehr bei 390 px Breite; breite Tabellen scrollen nur in ihrem Rahmen.
+- Kopfzeile am Handy kompakter: Einzeiler auf zwei Zeilen gekürzt, „Weitere Tools“ klappt auf.
+- **Helles Design** und Hell/Dunkel-Knopf; die Wahl wird gespeichert.
+- Reiter am Handy: **Angebote · Mein Bestand**; die passenden Gruppen der Werkzeugleiste wandern mit.
+
+### Geändert
+- **Familienfarben und -schriften** statt Navy/Gold und Segoe UI; Hauptknöpfe türkis wie in den anderen Tools, Gold/Amber bleibt Hervorhebungsfarbe.
+- **Werkzeugleiste in drei beschrifteten Gruppen:** Ansicht · Bestand · Daten. „leeren“ steht abgesetzt und ist als Löschknopf gestaltet (die Rückfrage bleibt).
+- Mengen-Knöpfe auf Touch-Geräten 44 px groß; die Werkzeugleiste läuft auf schmalen Bildschirmen nicht mehr mit.
+
 ## [1.5.0] – 2026-11-01
 
 ### Hinzugefügt

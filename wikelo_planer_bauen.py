@@ -33,6 +33,7 @@ import time
 import urllib.request
 
 import kopfzeile as kz
+import sc_design as sd
 
 HOST     = "seeknd.github.io"
 BASEPATH = "/Wikelo/"
@@ -262,157 +263,176 @@ def build_raw():
 
 # ----------------------------------------------------------------- HTML
 HTML_TEMPLATE = r"""<!doctype html>
-<html lang="de">
+<html lang="de" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SC Wikelo Ressourcen-Planer</title>
 <style>
 :root{
-  --navy:#0b3d5c; --navy2:#0e4d73; --ink:#0b1620; --panel:#132635; --panel2:#0f1e2b;
-  --line:#26445c; --txt:#e7eef4; --dim:#9db4c6; --gold:#ffcf5c; --gold2:#f6b93b;
-  --ok:#37c98a; --okbg:#123a2d; --miss:#ff7a7a; --missbg:#3a1c1f; --chip:#1c384c;
+  /* Wikelo-Rollen, abgeleitet aus den Familien-Tokens in sc_design.py (hell + dunkel) */
+  --w-navy:var(--panel); --w-navy2:var(--panel); --w-ink:var(--bg); --w-panel:var(--panel); --w-panel2:var(--panel2);
+  --w-line:var(--line); --w-txt:var(--ink); --w-dim:var(--muted); --w-gold:var(--accent2); --w-gold2:var(--accent2);
+  --w-ok:var(--ok); --w-okbg:var(--okbg); --w-miss:var(--bad); --w-missbg:var(--badbg); --w-chip:var(--panel2);
+  --w-band2:#d07a1f; --w-band3:#b3452f; --w-retbg:#efe9f7; --w-retbd:#c9b6e6; --w-rettx:#5b3f86;
+}
+:root[data-theme="dark"]{
+  --w-band2:#e69138; --w-band3:#c0392b; --w-retbg:#2a2333; --w-retbd:#4a3d5c; --w-rettx:#c9b6e6;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--ink);color:var(--txt);
-  font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:14px}
-a{color:var(--gold)}
-.wtools{background:linear-gradient(180deg,var(--navy),var(--navy2));padding:10px 16px;
-  border-bottom:2px solid var(--gold2);border-top:1px solid var(--line);position:sticky;top:0;z-index:20}
+html,body{margin:0;background:var(--w-ink);color:var(--w-txt);font-size:14px}
+a{color:var(--w-gold)}
+.wtools{background:var(--w-panel);padding:10px 16px;
+  border-bottom:2px solid var(--w-gold2);border-top:1px solid var(--w-line);position:sticky;top:0;z-index:20}
 .wtools .controls{margin-top:0}
-.hazard{height:5px;background:repeating-linear-gradient(45deg,var(--gold2) 0 14px,transparent 14px 28px);opacity:.9}
+.hazard{height:5px;background:repeating-linear-gradient(45deg,var(--w-gold2) 0 14px,transparent 14px 28px);opacity:.9}
 .fhwrap{padding:0 16px}
 .hrow{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
 h1{font-size:18px;margin:0;letter-spacing:.3px}
-h1 .sub{color:var(--gold);font-weight:600}
-.meta{color:var(--dim);font-size:12px}
+h1 .sub{color:var(--w-gold);font-weight:600}
+.meta{color:var(--w-dim);font-size:12px}
 .controls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:8px}
-.controls label{font-size:12.5px;color:var(--dim);display:flex;gap:6px;align-items:center}
-input[type=text],input[type=number]{background:var(--panel2);border:1px solid var(--line);
-  color:var(--txt);border-radius:6px;padding:6px 8px;font-size:13px}
+.controls label{font-size:12.5px;color:var(--w-dim);display:flex;gap:6px;align-items:center}
+input[type=text],input[type=number]{background:var(--w-panel2);border:1px solid var(--w-line);
+  color:var(--w-txt);border-radius:6px;padding:6px 8px;font-size:13px}
 input[type=number]{width:64px}
-select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:5px 6px;font-size:12.5px}
+select{background:var(--w-panel2);border:1px solid var(--w-line);color:var(--w-txt);border-radius:6px;padding:5px 6px;font-size:12.5px}
 .btn[disabled]{opacity:.5;cursor:progress}
-.btn{background:var(--chip);border:1px solid var(--line);color:var(--txt);border-radius:6px;
+.btn{background:var(--w-chip);border:1px solid var(--w-line);color:var(--w-txt);border-radius:6px;
   padding:6px 10px;font-size:12.5px;cursor:pointer}
-.btn:hover{border-color:var(--gold2)}
-.btn.prim{background:var(--gold2);color:#221a00;font-weight:700;border-color:var(--gold2)}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.seg button{background:var(--panel2);border:0;color:var(--dim);padding:6px 10px;cursor:pointer;font-size:12.5px}
-.seg button.on{background:var(--gold2);color:#221a00;font-weight:700}
+.btn:hover{border-color:var(--w-gold2)}
+.btn.prim{background:var(--accent);color:var(--onaccent);font-weight:700;border-color:var(--accent)}
+.seg{display:inline-flex;border:1px solid var(--w-line);border-radius:6px;overflow:hidden}
+.seg button{background:var(--w-panel2);border:0;color:var(--w-dim);padding:6px 10px;cursor:pointer;font-size:12.5px}
+.seg button.on{background:var(--accent);color:var(--onaccent);font-weight:700}
 main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-items:start}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
-.panel > .ph{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;
+.panel{background:var(--w-panel);border:1px solid var(--w-line);border-radius:10px}
+.panel > .ph{padding:9px 12px;border-bottom:1px solid var(--w-line);display:flex;
   justify-content:space-between;align-items:center;gap:8px}
 .ph b{font-size:13px}
 .side{position:sticky;top:96px;max-height:calc(100vh - 112px);display:flex;flex-direction:column}
 .side .scroll{overflow:auto;padding:6px 6px 10px}
-.grp{margin:6px 4px 2px;color:var(--gold);font-size:11.5px;text-transform:uppercase;
-  letter-spacing:.5px;padding:6px 8px 2px;border-top:1px solid var(--line)}
+.grp{margin:6px 4px 2px;color:var(--w-gold);font-size:11.5px;text-transform:uppercase;
+  letter-spacing:.5px;padding:6px 8px 2px;border-top:1px solid var(--w-line)}
 .grp:first-child{border-top:0}
 .res{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;cursor:pointer;
   user-select:none}
-.res:hover{background:#17303f}
-.res.have{background:var(--okbg)}
+.res:hover{background:var(--hover)}
+.res.have{background:var(--w-okbg)}
 .res .nm{flex:1;line-height:1.15}
-.res .nm small{color:var(--dim);display:block;font-size:10.5px}
-.res.have .nm{color:#c9f6e2}
+.res .nm small{color:var(--w-dim);display:block;font-size:10.5px}
+.res.have .nm{color:var(--ok)}
 .qbox{display:flex;align-items:center;gap:3px}
-.qbtn{width:22px;height:22px;border-radius:5px;border:1px solid var(--line);background:var(--panel2);
-  color:var(--txt);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center}
-.qbtn:hover{border-color:var(--gold2)}
+.qbtn{width:22px;height:22px;border-radius:5px;border:1px solid var(--w-line);background:var(--w-panel2);
+  color:var(--w-txt);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center}
+.qbtn:hover{border-color:var(--w-gold2)}
 .qval{min-width:26px;text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
-.qval.z{color:var(--dim);font-weight:400}
+.qval.z{color:var(--w-dim);font-weight:400}
 .qadd{position:relative;padding:8px 8px 2px}
-#quickAdd{width:100%;border-color:var(--gold2)}
-.qhint{padding:0 12px;color:#7d95a8;font-size:10.5px}
-.qsug{position:absolute;left:8px;right:8px;top:calc(100% - 2px);z-index:18;background:var(--panel2);
-  border:1px solid var(--gold2);border-top:0;border-radius:0 0 8px 8px;max-height:280px;overflow:auto;display:none;
+#quickAdd{width:100%;border-color:var(--w-gold2)}
+.qhint{padding:0 12px;color:var(--w-dim);font-size:10.5px}
+.qsug{position:absolute;left:8px;right:8px;top:calc(100% - 2px);z-index:18;background:var(--w-panel2);
+  border:1px solid var(--w-gold2);border-top:0;border-radius:0 0 8px 8px;max-height:280px;overflow:auto;display:none;
   box-shadow:0 10px 24px rgba(0,0,0,.4)}
 .qsug.open{display:block}
 .qsug .s{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;cursor:pointer;font-size:12.5px}
-.qsug .s:hover,.qsug .s.act{background:#17303f}
-.qsug .s .src2{color:var(--gold);font-size:9.5px;text-transform:uppercase}
-.qsug .s .sq{color:var(--ok);font-variant-numeric:tabular-nums;font-weight:700}
-.qsug .s small{color:var(--dim)}
+.qsug .s:hover,.qsug .s.act{background:var(--hover)}
+.qsug .s .src2{color:var(--w-gold);font-size:9.5px;text-transform:uppercase}
+.qsug .s .sq{color:var(--w-ok);font-variant-numeric:tabular-nums;font-weight:700}
+.qsug .s small{color:var(--w-dim)}
 .band{margin:0 0 14px}
 .band > .bh{display:flex;align-items:center;gap:10px;margin:2px 2px 8px;padding:6px 4px;
-  border-bottom:1px solid var(--line)}
+  border-bottom:1px solid var(--w-line)}
 .band > .bh .dot{width:11px;height:11px;border-radius:50%}
 .band > .bh b{font-size:14px}
-.band > .bh .cnt{color:var(--dim);font-size:12px}
+.band > .bh .cnt{color:var(--w-dim);font-size:12px}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
-.card{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 11px;
-  border-left:4px solid var(--line);position:relative}
-.card.b0{border-left-color:var(--ok)}
-.card.b1{border-left-color:var(--gold2)}
-.card.b2{border-left-color:#e69138}
-.card.b3{border-left-color:#c0392b}
+.card{background:var(--w-panel2);border:1px solid var(--w-line);border-radius:9px;padding:10px 11px;
+  border-left:4px solid var(--w-line);position:relative}
+.card.b0{border-left-color:var(--w-ok)}
+.card.b1{border-left-color:var(--w-gold2)}
+.card.b2{border-left-color:var(--w-band2)}
+.card.b3{border-left-color:var(--w-band3)}
 .card.locked{opacity:.62}
 .card.acquired{opacity:.6}
-.acq-btn{position:absolute;top:8px;right:8px;z-index:2;background:var(--chip);border:1px solid var(--line);
-  color:var(--dim);border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;line-height:1.4}
-.acq-btn:hover{border-color:var(--gold2);color:var(--txt)}
-.acq-btn.on{background:var(--okbg);border-color:#2b6b52;color:#bff3dd}
+.acq-btn{position:absolute;top:8px;right:8px;z-index:2;background:var(--w-chip);border:1px solid var(--w-line);
+  color:var(--w-dim);border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;line-height:1.4}
+.acq-btn:hover{border-color:var(--w-gold2);color:var(--w-txt)}
+.acq-btn.on{background:var(--w-okbg);border-color:var(--okbd);color:var(--oktx)}
 .card h3{margin:0 0 3px;font-size:14px;line-height:1.2;padding-right:78px}
-.card .cat{display:inline-block;font-size:10.5px;color:var(--dim);border:1px solid var(--line);
+.card .cat{display:inline-block;font-size:10.5px;color:var(--w-dim);border:1px solid var(--w-line);
   border-radius:20px;padding:1px 8px;margin-bottom:6px}
-.card .mission{color:var(--dim);font-size:11.5px;margin:0 0 7px;font-style:italic}
+.card .mission{color:var(--w-dim);font-size:11.5px;margin:0 0 7px;font-style:italic}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
-.chip{font-size:11.5px;border-radius:6px;padding:3px 7px;border:1px solid var(--line);
-  background:var(--chip);display:flex;gap:5px;align-items:center;cursor:default}
-.chip.ok{background:var(--okbg);border-color:#2b6b52;color:#bff3dd}
-.chip.miss{background:var(--missbg);border-color:#6b2f34;color:#ffd0d0;cursor:pointer}
+.chip{font-size:11.5px;border-radius:6px;padding:3px 7px;border:1px solid var(--w-line);
+  background:var(--w-chip);display:flex;gap:5px;align-items:center;cursor:default}
+.chip.ok{background:var(--w-okbg);border-color:var(--okbd);color:var(--oktx)}
+.chip.miss{background:var(--w-missbg);border-color:var(--badbd);color:var(--badtx);cursor:pointer}
 .chip .q{font-weight:700;font-variant-numeric:tabular-nums}
-.chip .cr{color:var(--gold);font-size:10px}
+.chip .cr{color:var(--w-gold);font-size:10px}
 .card .foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;
-  color:var(--dim);font-size:11px;gap:8px}
-.effort{display:flex;align-items:center;gap:4px;color:var(--dim);font-size:10.5px}
-.edot{width:7px;height:7px;border-radius:50%;background:#2f4a5e;display:inline-block}
-.edot.on{background:var(--gold2)}
-.badge{border-radius:5px;padding:1px 6px;font-size:10.5px;border:1px solid var(--line)}
-.badge.rep{color:var(--gold)}
-.badge.lock{background:#3a1c1f;border-color:#6b2f34;color:#ffd0d0}
-.badge.ret{background:#2a2333;border-color:#4a3d5c;color:#c9b6e6}
-.det{margin-top:7px;border-top:1px dashed var(--line);padding-top:7px;display:none}
+  color:var(--w-dim);font-size:11px;gap:8px}
+.effort{display:flex;align-items:center;gap:4px;color:var(--w-dim);font-size:10.5px}
+.edot{width:7px;height:7px;border-radius:50%;background:var(--w-line);display:inline-block}
+.edot.on{background:var(--w-gold2)}
+.badge{border-radius:5px;padding:1px 6px;font-size:10.5px;border:1px solid var(--w-line)}
+.badge.rep{color:var(--w-gold)}
+.badge.lock{background:var(--badbg);border-color:var(--badbd);color:var(--badtx)}
+.badge.ret{background:var(--w-retbg);border-color:var(--w-retbd);color:var(--w-rettx)}
+.det{margin-top:7px;border-top:1px dashed var(--w-line);padding-top:7px;display:none}
 .det.open{display:block}
 .det .row{margin:4px 0;font-size:11.5px;line-height:1.35}
-.det .row b{color:var(--txt)}
-.det .src{color:var(--gold);font-size:10px;text-transform:uppercase;letter-spacing:.4px}
-.det .sub{color:var(--dim)}
-.det .opt{display:inline-block;background:var(--chip);border:1px solid var(--line);border-radius:5px;
+.det .row b{color:var(--w-txt)}
+.det .src{color:var(--w-gold);font-size:10px;text-transform:uppercase;letter-spacing:.4px}
+.det .sub{color:var(--w-dim)}
+.det .opt{display:inline-block;background:var(--w-chip);border:1px solid var(--w-line);border-radius:5px;
   padding:1px 6px;margin:2px 4px 0 0;font-size:11px}
-.tog{cursor:pointer;color:var(--gold)}
-.empty{color:var(--dim);padding:18px;text-align:center}
-.legend{display:flex;flex-wrap:wrap;gap:10px;color:var(--dim);font-size:11px;margin-top:6px;align-items:center}
+.tog{cursor:pointer;color:var(--w-gold)}
+.empty{color:var(--w-dim);padding:18px;text-align:center}
+.legend{display:flex;flex-wrap:wrap;gap:10px;color:var(--w-dim);font-size:11px;margin-top:6px;align-items:center}
 .legend span{display:flex;gap:5px;align-items:center}
 .sw{width:10px;height:10px;border-radius:3px;display:inline-block}
-.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy2);
-  border:1px solid var(--gold2);color:var(--txt);padding:9px 16px;border-radius:8px;z-index:50;
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--w-navy2);
+  border:1px solid var(--w-gold2);color:var(--w-txt);padding:9px 16px;border-radius:8px;z-index:50;
   opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 /* Changelog-Modal */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:60;display:none;
   align-items:center;justify-content:center;padding:20px}
 .modal.open{display:flex}
-.modal-box{background:var(--panel);border:1px solid var(--gold2);border-radius:12px;
+.modal-box{background:var(--w-panel);border:1px solid var(--w-gold2);border-radius:12px;
   max-width:720px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.5)}
-.modal-head{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line)}
-.modal-head b{font-size:15px;color:var(--gold)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--w-line)}
+.modal-head b{font-size:15px;color:var(--w-gold)}
 .modal-body{overflow:auto;padding:4px 18px 12px}
-.modal-body h3{color:var(--gold);font-size:15px;margin:16px 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px}
-.modal-body h4{font-size:11.5px;color:var(--gold2);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 3px}
+.modal-body h3{color:var(--w-gold);font-size:15px;margin:16px 0 6px;border-bottom:1px solid var(--w-line);padding-bottom:4px}
+.modal-body h4{font-size:11.5px;color:var(--w-gold2);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 3px}
 .modal-body ul{margin:3px 0;padding-left:20px}
 .modal-body li{margin:3px 0;line-height:1.4}
-.modal-body p{color:var(--dim);line-height:1.4;margin:6px 0}
-.modal-body code{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:12px}
+.modal-body p{color:var(--w-dim);line-height:1.4;margin:6px 0}
+.modal-body code{background:var(--w-panel2);border:1px solid var(--w-line);border-radius:4px;padding:0 4px;font-size:12px}
 .modal-body a{word-break:break-word}
-.modal-foot{padding:10px 16px;border-top:1px solid var(--line);text-align:right;font-size:12.5px}
+.modal-foot{padding:10px 16px;border-top:1px solid var(--w-line);text-align:right;font-size:12.5px}
 /* Responsive-Overrides ganz am Ende, damit sie die Basis-Regeln ueberschreiben */
-@media(max-width:900px){
-  main{grid-template-columns:1fr}
+.controls{gap:8px 10px}
+.wgrp{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:6px 10px;border:1px solid var(--w-line);border-radius:10px;background:var(--w-panel2)}
+.wlbl{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--w-dim)}
+.wsep{width:8px}
+@media(max-width:919px){
+  main{grid-template-columns:1fr;padding:0 12px 14px}
   .side{position:static;max-height:none}
-  .side .scroll{max-height:52vh}
+  .side .scroll{max-height:none}
+  .wtools{position:static}
+  .sc-ptabs{margin:10px 12px 0}
+  .wtools{border-top:0;padding:10px 12px}
+}
+@media(max-width:600px){
+  .wgrp{width:100%}
+  #offerSearch{flex:1 1 100%;min-width:0!important}
+}
+@media(pointer:coarse){
+  .qbtn{width:44px;height:44px;font-size:18px}
+  .seg button{min-height:44px}
 }
 /*FH_CSS*/
 </style>
@@ -423,36 +443,43 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
 <div class="fhwrap">
 <!--FH_HEADER-->
 </div>
+<div class="sc-ptabs" id="wkTabs"></div>
 <div class="wtools">
   <div class="controls">
-    <div class="seg" id="modeSeg">
-      <button data-mode="aufwand" class="on" data-i18n="modeEffort">Nach Aufwand</button>
-      <button data-mode="gruppe" data-i18n="modeGroup">Nach Artikelgruppe</button>
+    <div class="wgrp" id="grpView" role="group" aria-labelledby="wgView"><span class="wlbl" id="wgView" data-i18n="grpView">Ansicht</span>
+      <div class="seg" id="modeSeg">
+        <button data-mode="aufwand" class="on" data-i18n="modeEffort">Nach Aufwand</button>
+        <button data-mode="gruppe" data-i18n="modeGroup">Nach Artikelgruppe</button>
+      </div>
+      <label><span data-i18n="repLabel">Mein Wikelo-Ruf:</span>
+        <input type="number" id="myRep" min="0" step="5" value="0" style="width:76px">
+      </label>
+      <label><input type="checkbox" id="onlyRep"> <span data-i18n="onlyRep">nur erfüllbarer Ruf</span></label>
+      <label><input type="checkbox" id="showRetired"> <span data-i18n="showRetired">zurückgezogene zeigen</span></label>
+      <label><input type="checkbox" id="showAcquired"> <span data-i18n="showAcquired">erworbene zeigen</span> <span class="meta" id="acqCount"></span></label>
+      <input type="text" id="offerSearch" data-i18n-ph="offerSearchPh" placeholder="Angebote filtern…" style="min-width:150px">
     </div>
-    <label><span data-i18n="repLabel">Mein Wikelo-Ruf:</span>
-      <input type="number" id="myRep" min="0" step="5" value="0" style="width:72px">
-    </label>
-    <label><input type="checkbox" id="onlyRep"> <span data-i18n="onlyRep">nur erfüllbarer Ruf</span></label>
-    <label><input type="checkbox" id="showRetired"> <span data-i18n="showRetired">zurückgezogene zeigen</span></label>
-    <label><input type="checkbox" id="showAcquired"> <span data-i18n="showAcquired">erworbene zeigen</span> <span class="meta" id="acqCount"></span></label>
-    <input type="text" id="offerSearch" data-i18n-ph="offerSearchPh" placeholder="Angebote filtern…" style="min-width:150px">
-    <button class="btn prim" id="btnSave" data-i18n="btnSave" data-i18n-title="btnSaveTitle" title="Klick: speichern · Rechtsklick: Speicherort neu wählen">💾 Bestand speichern</button>
-    <button class="btn" id="btnLoad" data-i18n="btnLoad">📂 Bestand laden</button>
-    <button class="btn" id="btnReset" data-i18n="btnReset">leeren</button>
-    <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
-    <span style="flex:1 1 auto"></span>
-    <label><span data-i18n="priceLabel">Preise:</span>
-      <select id="priceSrc">
-        <option value="beide" data-i18n="priceBoth">beide (star-head + UEX)</option>
-        <option value="uex" data-i18n="priceUex">nur UEX</option>
-        <option value="starhead" data-i18n="priceSh">nur star-head</option>
-      </select>
-    </label>
+    <div class="wgrp" id="grpInv" role="group" aria-labelledby="wgInv"><span class="wlbl" id="wgInv" data-i18n="grpInv">Bestand</span>
+      <button class="btn prim" id="btnSave" data-i18n="btnSave" data-i18n-title="btnSaveTitle" title="Klick: speichern · Rechtsklick: Speicherort neu wählen">💾 Bestand speichern</button>
+      <button class="btn" id="btnLoad" data-i18n="btnLoad">📂 Bestand laden</button>
+      <span class="wsep" aria-hidden="true"></span>
+      <button class="btn danger" id="btnReset" data-i18n="btnReset">leeren</button>
+      <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+    </div>
+    <div class="wgrp" id="grpData" role="group" aria-labelledby="wgData"><span class="wlbl" id="wgData" data-i18n="grpData">Daten</span>
+      <label><span data-i18n="priceLabel">Preise:</span>
+        <select id="priceSrc">
+          <option value="beide" data-i18n="priceBoth">beide (star-head + UEX)</option>
+          <option value="uex" data-i18n="priceUex">nur UEX</option>
+          <option value="starhead" data-i18n="priceSh">nur star-head</option>
+        </select>
+      </label>
+    </div>
   </div>
 </div>
 
 <main>
-  <aside class="panel side">
+  <aside class="panel side" id="wkSide">
     <div class="ph">
       <b data-i18n="panelTitle">Mein Ressourcen-Bestand</b>
       <span class="meta" id="haveCount"></span>
@@ -463,22 +490,22 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
     </div>
     <div class="qhint" data-i18n="quickHint">„name zahl" setzt · „name +zahl" addiert · nur „name" = +1 · ↑↓ wählen, Enter übernehmen</div>
     <div style="padding:8px 8px 0"><input type="text" id="resSearch" data-i18n-ph="resSearchPh" placeholder="Ressource suchen…" style="width:100%"></div>
-    <div style="padding:5px 12px 0;color:var(--dim);font-size:11px;line-height:1.4">
+    <div style="padding:5px 12px 0;color:var(--w-dim);font-size:11px;line-height:1.4">
       <span data-i18n="qtyHint">Menge: Klick +1 · Shift +10 · Strg +50 · Alt +100</span>
-      <span style="color:#7d95a8" data-i18n="qtyHint2">(Mausrad = hoch/runter, Rechtsklick = minus, gleiche Modifier)</span>
+      <span style="color:var(--w-dim)" data-i18n="qtyHint2">(Mausrad = hoch/runter, Rechtsklick = minus, gleiche Modifier)</span>
     </div>
-    <label style="padding:6px 12px;color:var(--dim);font-size:12px;display:flex;gap:6px;align-items:center">
+    <label style="padding:6px 12px;color:var(--w-dim);font-size:12px;display:flex;gap:6px;align-items:center">
       <input type="checkbox" id="onlyHave"> <span data-i18n="onlyHave">nur „hab ich" zeigen</span>
     </label>
     <div class="scroll" id="resList"></div>
   </aside>
 
-  <section>
+  <section id="wkOffers">
     <div class="legend">
-      <span><i class="sw" style="background:var(--ok)"></i> <span data-i18n="lgNow">sofort</span></span>
-      <span><i class="sw" style="background:var(--gold2)"></i> <span data-i18n="lg1">1 fehlt</span></span>
-      <span><i class="sw" style="background:#e69138"></i> <span data-i18n="lg2">2 fehlen</span></span>
-      <span><i class="sw" style="background:#c0392b"></i> <span data-i18n="lg3">3+ fehlen</span></span>
+      <span><i class="sw" style="background:var(--w-ok)"></i> <span data-i18n="lgNow">sofort</span></span>
+      <span><i class="sw" style="background:var(--w-gold2)"></i> <span data-i18n="lg1">1 fehlt</span></span>
+      <span><i class="sw" style="background:var(--w-band2)"></i> <span data-i18n="lg2">2 fehlen</span></span>
+      <span><i class="sw" style="background:var(--w-band3)"></i> <span data-i18n="lg3">3+ fehlen</span></span>
       <span>· <span data-i18n="lgEffort">Aufwand = Gesamtaufwand des Fehlenden (Menge × Beschaffung)</span></span>
       <span style="margin-left:auto" data-i18n="tip">Menge links: Klick +1 · Shift +10 · Strg +50 · Alt +100 (Mausrad/Rechtsklick ebenso)</span>
     </div>
@@ -520,7 +547,7 @@ const BAND_LABEL = {
   en:['Available now','1 ingredient missing','2 ingredients missing','3+ ingredients missing']};
 const I18N = {
   de:{ modeEffort:'Nach Aufwand', modeGroup:'Nach Artikelgruppe', repLabel:'Mein Wikelo-Ruf:',
-    onlyRep:'nur erfüllbarer Ruf', showRetired:'zurückgezogene zeigen', showAcquired:'erworbene zeigen',
+    grpView:'Ansicht', grpInv:'Bestand', grpData:'Daten', onlyRep:'nur erfüllbarer Ruf', showRetired:'zurückgezogene zeigen', showAcquired:'erworbene zeigen',
     offerSearchPh:'Angebote filtern…',
     btnSave:'💾 Bestand speichern', btnSaveTitle:'Klick: speichern · Rechtsklick: Speicherort neu wählen',
     btnLoad:'📂 Bestand laden', btnReset:'leeren', priceLabel:'Preise:',
@@ -551,7 +578,7 @@ const I18N = {
     loading:'⏳ lädt…', metaBuilt:'gebaut {d}', metaRefreshed:'GitHub-Stand {d}',
     metaLine:'Patch {patch} · Daten {data} · {no} Angebote · {ni} Ressourcen · {fresh}' },
   en:{ modeEffort:'By effort', modeGroup:'By category', repLabel:'My Wikelo reputation:',
-    onlyRep:'only reachable rep', showRetired:'show retired', showAcquired:'show acquired',
+    grpView:'View', grpInv:'Inventory', grpData:'Data', onlyRep:'only reachable rep', showRetired:'show retired', showAcquired:'show acquired',
     offerSearchPh:'Filter offers…',
     btnSave:'💾 Save stock', btnSaveTitle:'Click: save · Right-click: choose new location',
     btnLoad:'📂 Load stock', btnReset:'clear', priceLabel:'Prices:',
@@ -669,6 +696,16 @@ try{ lsAcq = JSON.parse(localStorage.getItem(LS_ACQ)||'null'); }catch(e){}
 if(lsAcq && Object.keys(lsAcq).length){ acq = lsAcq; }
 else { acq = Object.assign({}, DATA.saved_acq||{}); }    // gleiche Vorbelegungs-Logik wie Bestand
 try{ Object.assign(pref, JSON.parse(localStorage.getItem(LS_PREF)||'{}')||{}); }catch(e){}
+// Hell/Dunkel: vor dem ersten Zeichnen setzen, Wahl in pref speichern
+document.documentElement.setAttribute('data-theme', pref.theme||'dark');
+document.getElementById('themeBtn').addEventListener('click', ()=>{
+  const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',n); pref.theme=n; savePref();
+});
+// Reiter auf schmalen Bildschirmen: Angebote zuerst
+scPanels(document.getElementById('wkTabs'),[
+  {key:'off',label:'<span class="fh-de">Angebote</span><span class="fh-en">Offers</span>',els:[document.getElementById('wkOffers'),document.getElementById('grpView'),document.getElementById('grpData')]},
+  {key:'inv',label:'<span class="fh-de">Mein Bestand</span><span class="fh-en">My inventory</span>',els:[document.getElementById('wkSide'),document.getElementById('grpInv')]}],'off');
 
 function saveInv(){ try{localStorage.setItem(LS_INV, JSON.stringify(inv));}catch(e){} }
 function saveAcq(){ try{localStorage.setItem(LS_ACQ, JSON.stringify(acq));}catch(e){} }
@@ -707,7 +744,7 @@ function analyze(o){
   return {missTypes, missQty, missing, band, effort, stars, repOk};
 }
 
-const BANDS=[ {k:0,dot:'var(--ok)'}, {k:1,dot:'var(--gold2)'}, {k:2,dot:'#e69138'}, {k:3,dot:'#c0392b'} ];
+const BANDS=[ {k:0,dot:'var(--w-ok)'}, {k:1,dot:'var(--w-gold2)'}, {k:2,dot:'var(--w-band2)'}, {k:3,dot:'var(--w-band3)'} ];
 
 // ---- inventory panel ----
 function renderRes(){
@@ -800,7 +837,7 @@ function offerCard(o){
     <div class="chips">${chips}</div>
     ${detHtml}
     <div class="foot">
-      <span>${a.missing.length?`<span class="tog">${t('getMissing')} ▾</span>`:`<span style="color:var(--ok)">${t('complete')}</span>`}</span>
+      <span>${a.missing.length?`<span class="tog">${t('getMissing')} ▾</span>`:`<span style="color:var(--w-ok)">${t('complete')}</span>`}</span>
       <span style="display:flex;gap:8px;align-items:center">${dots} ${retBadge} ${rewBadge} ${repBadge}</span>
     </div>
   </div>`;
@@ -841,7 +878,7 @@ function renderOffers(){
     for(const cat of cats){
       const items=rows.filter(x=>x.o.artkey===cat).sort(sortCmp);
       if(!items.length) continue;
-      html+=`<div class="band"><div class="bh"><span class="dot" style="background:var(--navy2)"></span>
+      html+=`<div class="band"><div class="bh"><span class="dot" style="background:var(--w-navy2)"></span>
         <b>${esc(catLabel(cat))}</b><span class="cnt">${items.length}</span></div>
         <div class="cards">${items.map(x=>offerCard(x.o)).join('')}</div></div>`;
     }
@@ -1131,7 +1168,7 @@ rerenderAll();
 
 def fill_header(html):
     """Gemeinsame Kopfzeile, „Was ist neu?“-Dialog und Changelog einsetzen (kopfzeile.py).
-    Wikelo hat kein helles Design, daher ohne Hell/Dunkel-Knopf."""
+    Hell/Dunkel über das gemeinsame Design (sc_design.py)."""
     refresh = ('<button class="btn fh-btn" id="btnRefresh" type="button" data-i18n="btnRefresh" '
                'data-i18n-title="btnRefreshTitle" title="Neuesten täglich gebauten Datenstand von GitHub laden">'
                '🔄 Neuesten Stand laden (GitHub)</button>')
@@ -1144,9 +1181,9 @@ def fill_header(html):
               "Which Wikelo offers can I fulfil with my inventory, and what is still missing? "
               "Data from star-head.de and UEX – verify in game."),
         version=VERSION, refresh=refresh, data='<span id="meta"></span>',
-        theme=False, lang=kz.lang_seg("langSeg"))
-    html = html.replace("<!--FH_HEADER-->", head).replace("<!--FH_FONTS-->", kz.FONTS)
-    html = html.replace("/*FH_CSS*/", kz.CSS).replace("/*FH_JS*/", kz.JS)
+        lang=kz.lang_seg("langSeg"))
+    html = html.replace("<!--FH_HEADER-->", head).replace("<!--FH_FONTS-->", sd.FONTS)
+    html = html.replace("/*FH_CSS*/", kz.CSS + sd.CSS).replace("/*FH_JS*/", kz.JS + sd.JS)
     return html.replace("<!--FH_DIALOG-->", kz.dialog_html("wikelo", VERSION) + "\n"
                         + kz.changelog_script(OUTDIR / "CHANGELOG.md"))
 
