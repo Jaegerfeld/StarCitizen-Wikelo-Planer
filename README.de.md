@@ -29,7 +29,7 @@ Die Oberfläche ist **zweisprachig (Deutsch/Englisch)**, umschaltbar im Header.
   Erz-Preis-Hinweise.
 - **Täglich frische Daten:** die Online-Version wird jeden Tag neu gebaut (GitHub Actions, 05:00 UTC).
   Der Knopf **„Neuesten Stand laden (GitHub)“** in der App holt die `data.json` dieses Builds von
-  GitHub Pages – auch aus einer Offline-Kopie heraus – statt seeknd, star-head und UEX direkt
+  GitHub Pages – auch aus einer Offline-Kopie heraus – statt seeknd und star-head direkt
   abzufragen; lokal gecacht, Rechtsklick setzt auf die eingebauten Daten zurück.
 - **Reputations-Filter**, zurückgezogene ausblenden, **Bestand speichern/laden** als `SC_Wikelo_Bestand.json`.
 
@@ -47,7 +47,7 @@ Voraussetzung: **Python 3.9+**, **keine** externen Pakete (nur Standardbibliothe
 - **Wikelo-Angebote:** community-Datenbank *Wikelo's Emporium Reference*
   ([seeknd.github.io/Wikelo](https://seeknd.github.io/Wikelo/))
 - **Bauplan-Rezepte:** [star-head.de](https://star-head.de) (offene API)
-- **Erz-Preise:** [UEX](https://uexcorp.space) (offene API)
+- **Erz-Preise:** [star-head.de](https://star-head.de) (Verkaufspreise je Shop mit Ort; dieselbe Quelle wie im Handels-Planer)
 
 Die Daten sind patch-abhängig und rotieren – im Zweifel im Spiel gegenprüfen.
 

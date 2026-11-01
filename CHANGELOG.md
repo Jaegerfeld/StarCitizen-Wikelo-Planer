@@ -4,6 +4,15 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.6.2] – 2026-11-01
+
+### Behoben
+- **Erz-Preise werden wieder angezeigt.** Der Build meldete „0 Erz-Preise“, weil er alle Preise über 100 000 aUEC/SCU als Platzhalter verwarf. Jaclium, Saldynium und Sadaryx verkaufen sich aber wirklich für 0,5 bis 34 Mio. aUEC/SCU (Sadaryx am 28.10. per Screenshot in Orison bestätigt).
+
+### Geändert
+- **Erz-Preise kommen jetzt von star-head.de** statt von UEX, dieselbe Quelle wie im Handels-Planer. Der Hinweis nennt den besten Verkaufsort mit Datum und die Zahl der Verkaufsorte. Für Carinite meldet keine Quelle einen Preis; dort bleibt der Hinweis leer.
+- Die Auswahl „Preise: beide / nur UEX / nur star-head“ ist entfernt. Sie wurde gespeichert, hatte aber keine Wirkung.
+
 ## [1.6.1] – 2026-11-01
 
 ### Geändert
