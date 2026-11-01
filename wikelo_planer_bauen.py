@@ -1,27 +1,44 @@
-"""
-Wikelo Ressourcen-Planer  ->  SC_Wikelo_Planer.html  (eine eigenstaendige Datei)
-
-Baut eine offline lauffaehige GUI (im Browser) aus:
-  - Wikelo-Angebote:  https://seeknd.github.io/Wikelo/data/wikelo_data.json
-  - Bauplan-Rezepte:  https://api.star-head.de/blueprint   (fuer craftbare Zutaten)
-  - Erz-Preise/Orte:  https://api.star-head.de/{commodity,shop,shopitem/price}
-
-Bedienung der fertigen App:
-  * Links: Ressourcen-Bestand. Zutat anklicken = "hab ich".
-    Menge: [+]/[-]-Knopf, Mausrad ueber der Zeile, Rechtsklick = -1, oder Zahl tippen.
-  * Rechts: Wikelo-Angebote, gestaffelt nach Aufwand:
-       Sofort verfuegbar  ->  1 Zutat fehlt  ->  2 fehlen  ->  3+ fehlen
-    Innerhalb der Baender zusaetzlich nach Beschaffungs-Aufwand sortiert
-    (Erz leicht, Creature/Contested-Zone schwer). Umschaltbar auf Artikelgruppe.
-  * "Fehlendes beschaffen" je Angebot: Bauplan-Rezept, Favor-Tausch, Erz-Preis/Kaufort.
-  * Bereits erhaltene Angebote per "erworben" markieren = ausblenden (persistiert).
-  * Bestand + Erworben-Markierungen bleiben im Browser (localStorage) und lassen sich als
-    Datei speichern/laden (Format {schema, inventory, acquired}; freier Speicherort per
-    File System Access API, sonst Download). Eine vorhandene SC_Wikelo_Bestand.json wird
-    beim Neubau automatisch vorgeladen (altes flaches {name: menge} wird weiter gelesen).
-
-Start:  py "wikelo_planer_bauen.py"   (oder Wikelo_Planer_aktualisieren.bat)
-"""
+# =============================================================================
+# Autor:          Robert Seebauer
+# Repository:     https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer
+# KI-Unterstützung: Erstellt mit Unterstützung von Claude (Anthropic)
+# Erstellt:       22.08.2026
+# Geändert:       01.11.2026
+# Lizenz:         BSD-3-Clause (siehe LICENSE)
+#
+# Fachliche Funktion:
+#   Baut den Wikelo-Ressourcen-Planer für Star-Citizen-Spieler: eine einzige,
+#   offline lauffähige HTML-Datei (SC_Wikelo_Planer.html), die zeigt, welche
+#   Wikelo-Angebote (Schiffe, Fahrzeuge, Waffen, Rüstung, Ausrüstung,
+#   Freischalt-Mission) sich mit dem eigenen Ressourcen-Bestand erfüllen lassen
+#   und was dafür noch fehlt.
+#   Datenquellen (Community, nur gelesen):
+#     - Wikelo-Angebote, Rezepte, Ruf und Währungs-Tausch:
+#       seeknd.github.io/Wikelo/data/wikelo_data.json
+#     - Bauplan-Rezepte craftbarer Zutaten: api.star-head.de/blueprint
+#       (nur Baupläne, deren Name eine Wikelo-Zutat ist – hält die Datei klein)
+#     - Erz-Preise (aUEC/SCU) für Carinite, Jaclium, Saldynium, Sadaryx:
+#       api.uexcorp.space/2.0/commodities; UEX liefert keinen Ort, Platzhalter
+#       (0 oder Millionenwerte) werden per Plausibilitätsgrenze verworfen.
+#   Python bündelt nur die Rohdaten; die Aufbereitung (Zutaten-Kategorien,
+#   Beschaffungs-Aufwand, Bänder „sofort / 1 / 2 / 3+ fehlen“, Sortierung,
+#   Beschaffungs-Hinweise) läuft einmalig im Browser (transform() im HTML),
+#   damit Offline-Build und In-App-Aktualisierung dieselbe Logik nutzen.
+#   Die Rohdaten werden in die HTML eingebacken und zusätzlich als data.json
+#   (ohne persönlichen Bestand) geschrieben; der Knopf „Neuesten Stand laden“
+#   holt diese Datei von GitHub Pages statt die Community-Quellen direkt
+#   abzufragen.
+#   Persönlicher Bestand: Liegt neben dem Skript eine SC_Wikelo_Bestand.json
+#   (Format {schema, inventory, acquired}; altes flaches {name: menge} wird
+#   weiter gelesen), wird sie beim Bau vorgeladen. In der App bleiben Bestand
+#   und „erworben“-Markierungen im localStorage und lassen sich als Datei
+#   speichern/laden.
+#   Bei nicht erreichbarer Wikelo-Quelle bricht der Bau ab und lässt die
+#   bestehende HTML unverändert; fehlende Baupläne oder Preise sind kein
+#   Abbruchgrund.
+#   Start: py wikelo_planer_bauen.py (oder Wikelo_Planer_aktualisieren.bat).
+# =============================================================================
+"""Build script for the SC Wikelo resource planner (single offline HTML file)."""
 import datetime
 import http.client
 import json
@@ -35,41 +52,76 @@ import urllib.request
 import kopfzeile as kz
 import sc_design as sd
 
+#: Host of the seeknd Wikelo data site (offers, recipes, currency exchanges).
 HOST     = "seeknd.github.io"
+#: Path prefix of the Wikelo site on HOST.
 BASEPATH = "/Wikelo/"
-OUTDIR   = pathlib.Path(__file__).resolve().parent   # Skript-Ordner (laeuft auf jedem PC / in CI)
+#: Output folder = script folder, so the build runs on any PC and in CI.
+OUTDIR   = pathlib.Path(__file__).resolve().parent
+#: The generated single-file planner.
 OUTHTML  = OUTDIR / "SC_Wikelo_Planer.html"
-OUTJSON  = OUTDIR / "data.json"   # gleicher Datenstand als Datei (fuer den Knopf in der App, via Pages)
+#: Same data snapshot as a file (without personal inventory) for the in-app refresh via Pages.
+OUTJSON  = OUTDIR / "data.json"
+#: Published location of data.json on GitHub Pages.
 DATA_URL = "https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/data.json"
+#: Optional personal inventory file; preloaded into the build when present.
 BESTAND  = OUTDIR / "SC_Wikelo_Bestand.json"
+#: Build date (ISO), shown in the app and stored as ``generated``.
 STAMP    = datetime.date.today().isoformat()
 try:
     from version import VERSION
 except Exception:
     VERSION = "0.0.0"
 
+#: One recipe part such as ``"12 x Carinite (Pure)"`` -> (quantity, name).
 PAT = re.compile(r'^\s*(\d+)\s*x\s+(.*\S)\s*$')
 
-# Die Aufbereitungslogik (Kategorien, Quellen-Klassifikation, Angebote, Waehrungs-Tausch,
-# Aufwand-Gewichte) lebt jetzt EINMALIG im Browser (transform() im HTML) \u2013 damit der
-# In-App-Refresh dieselbe Logik nutzt wie der Offline-Build. Python buendelt nur die Rohdaten.
+# The preparation logic (categories, source classification, offers, currency exchange,
+# effort weights) lives ONCE in the browser (transform() in the HTML), so the in-app
+# refresh uses the same logic as the offline build. Python only bundles the raw data.
 
-# Erz-Zutaten -> Commodity-Basisname (Suffixe (Ore)/(Pure) normalisiert) fuer Preis-Lookup
 def ore_commodity(name):
+    """Map an ore ingredient to its commodity base name for the price lookup.
+
+    Only the four Wikelo ores that UEX lists are recognised; the suffixes
+    ``(Ore)`` and ``(Pure)`` are stripped first.
+
+    Args:
+        name: Ingredient name as it appears in a Wikelo recipe.
+
+    Returns:
+        The base name (``"Carinite"``, ``"Jaclium"``, ``"Saldynium"`` or
+        ``"Sadaryx"``), or ``None`` if the ingredient is not one of these ores.
+    """
     base = re.sub(r'\s*\((Ore|Pure)\)$', '', str(name).strip()).strip()
     if base in ("Carinite", "Jaclium", "Saldynium", "Sadaryx"):
         return base
     return None
 
 
-# ----------------------------------------------------------------- Netzwerk
+# ----------------------------------------------------------------- Network
 class SiteClient:
-    """Eine wiederverwendete HTTPS-Verbindung (Keep-Alive) mit Auto-Reconnect."""
+    """A reused HTTPS connection (keep-alive) to one host with automatic reconnect."""
     def __init__(self, host):
+        """Open the connection.
+
+        Args:
+            host: Host name, e.g. ``"seeknd.github.io"``.
+        """
         self.host = host; self.ctx = ssl.create_default_context(); self._connect()
     def _connect(self):
+        """(Re)create the underlying HTTPS connection with a 30 s timeout."""
         self.conn = http.client.HTTPSConnection(self.host, timeout=30, context=self.ctx)
     def get(self, path, retries=4):
+        """Send a GET request, reconnecting after network errors.
+
+        Args:
+            path: Request path on the host, including the leading slash.
+            retries: Number of attempts before giving up.
+
+        Returns:
+            Tuple ``(status, body)``; ``(None, b"")`` if every attempt failed.
+        """
         for _ in range(retries):
             try:
                 self.conn.request("GET", path, headers={"User-Agent": "Mozilla/5.0 sc-wikelo-planer"})
@@ -81,11 +133,23 @@ class SiteClient:
                 time.sleep(0.5); self._connect()
         return None, b""
     def close(self):
+        """Close the connection, ignoring errors."""
         try: self.conn.close()
         except Exception: pass
 
 
 def netzfehler_exit(quelle, grund):
+    """Print a friendly "source unreachable" notice and exit with status 1.
+
+    The existing HTML file is left untouched, so the last good build stays usable.
+
+    Args:
+        quelle: Name of the data source shown to the user.
+        grund: Exception or reason text.
+
+    Raises:
+        SystemExit: Always, with exit code 1.
+    """
     print(); print("=" * 64)
     print(f" Datenquelle ({quelle}) ist gerade NICHT erreichbar.")
     print(" Grund:", grund)
@@ -96,13 +160,36 @@ def netzfehler_exit(quelle, grund):
 
 
 def get_json_url(url, timeout=90):
+    """Fetch a URL and decode its body as JSON.
+
+    Args:
+        url: Full URL to fetch.
+        timeout: Timeout in seconds.
+
+    Returns:
+        The decoded JSON value.
+
+    Raises:
+        urllib.error.URLError: On network or HTTP errors.
+        json.JSONDecodeError: If the body is not valid JSON.
+    """
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 sc-wikelo-planer"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8"))
 
 
-# ----------------------------------------------------------------- Helfer
+# ----------------------------------------------------------------- Helpers
 def parse_recipe(recipe):
+    """Split a Wikelo recipe string into ingredients with quantities.
+
+    Parts are separated by ``;``; a part without ``"<n> x "`` prefix counts as quantity 1.
+
+    Args:
+        recipe: Recipe string, e.g. ``"50 x Carinite; 1 x Wikelo Favor"``.
+
+    Returns:
+        List of ``{"name": str, "qty": int}`` dicts in recipe order.
+    """
     out = []
     for part in str(recipe).split(";"):
         part = part.strip()
@@ -115,10 +202,22 @@ def parse_recipe(recipe):
     return out
 
 
-# ----------------------------------------------------------------- Erz-Preise (UEX)
+# ----------------------------------------------------------------- Ore prices (UEX)
 def fetch_prices_uex(need_bases):
-    """Erz-Preise (aUEC/SCU) je Commodity-Basisname aus der UEX-API.
-    UEX liefert flache price_buy/price_sell (kein Terminal/Ort) -> loc bleibt None."""
+    """Fetch ore prices (aUEC/SCU) per commodity base name from the UEX API.
+
+    UEX returns flat ``price_buy``/``price_sell`` values without terminal or
+    location, so ``loc`` stays ``None``. Values outside ``0 < price <= 100000``
+    are UEX placeholders for new ores and are ignored. If UEX is unreachable,
+    a notice is printed and the build continues without prices.
+
+    Args:
+        need_bases: Set of commodity base names that Wikelo recipes need.
+
+    Returns:
+        Dict ``{base: {"buy": {"price", "loc"} | None, "sell": ... | None,
+        "src": "uex"}}``; only bases with at least one valid price appear.
+    """
     out = {}
     if not need_bases:
         return out
@@ -127,7 +226,7 @@ def fetch_prices_uex(need_bases):
     except Exception as e:
         print("  Hinweis: UEX-Preise nicht erreichbar -> ohne Erz-Preise.", e)
         return out
-    CAP = 100000   # Plausibilitaet: aUEC/SCU; UEX hat fuer neue Erze teils Platzhalter (0 oder Millionen)
+    CAP = 100000   # plausibility cap in aUEC/SCU; UEX has placeholders (0 or millions) for new ores
     data = res.get("data") if isinstance(res, dict) else res
     for c in (data or []):
         nm = (c.get("name") or "").strip()
@@ -146,9 +245,16 @@ def fetch_prices_uex(need_bases):
     return out
 
 
-# ----------------------------------------------------------------- Rohdaten buendeln
+# ----------------------------------------------------------------- Bundle raw data
 def recipe_names(recipe):
-    """Nur die Zutat-Namen aus einem Rezept-String (fuer Bauplan-Filter)."""
+    """Return only the ingredient names of a recipe string (for the blueprint filter).
+
+    Args:
+        recipe: Recipe string as in :func:`parse_recipe`.
+
+    Returns:
+        List of ingredient names in recipe order.
+    """
     out = []
     for part in str(recipe).split(";"):
         part = part.strip()
@@ -159,9 +265,20 @@ def recipe_names(recipe):
 
 
 def load_saved(path):
-    """Bestandsdatei einlesen -> (saved_inv, saved_acq).
-    Format v2 = {"inventory": {...}, "acquired": {...}}; altes flaches {name: menge}
-    wird weiterhin als reiner Bestand gelesen (Abwaertskompatibilitaet)."""
+    """Read the personal inventory file to preload it into the build.
+
+    Format v2 is ``{"inventory": {...}, "acquired": {...}}``; the old flat
+    ``{name: amount}`` is still read as plain inventory (backward compatibility).
+    Amounts are rounded and only positive ones are kept. An unreadable file
+    prints a notice and yields empty results.
+
+    Args:
+        path: Path to ``SC_Wikelo_Bestand.json``; it may be missing.
+
+    Returns:
+        Tuple ``(saved_inv, saved_acq)``: ``{name: amount}`` and
+        ``{mission_name: {"reward": str, "ts": str}}``.
+    """
     saved_inv, saved_acq = {}, {}
     if not path.exists():
         return saved_inv, saved_acq
@@ -194,6 +311,17 @@ def load_saved(path):
 
 
 def build_raw():
+    """Download all sources and bundle them into the raw data object (schema 2).
+
+    Wikelo data is mandatory (exits via :func:`netzfehler_exit` if unreachable);
+    star-head blueprints and UEX prices are optional and only print a notice
+    on failure.
+
+    Returns:
+        Dict with ``schema``, ``version``, ``generated``, ``source``,
+        ``wikelo`` (meta, ships, items, intro_mission, currency_exchanges),
+        ``blueprints``, ``prices``, ``saved_inv`` and ``saved_acq``.
+    """
     client = SiteClient(HOST)
     print("Lade Wikelo-Daten ...")
     try:
@@ -207,13 +335,13 @@ def build_raw():
     allrecs = list(d["ships"]) + list(d["items"]) + [d["intro_mission"]]
     print(f"  {len(d['ships'])} Schiffe/Fahrzeuge, {len(d['items'])} Items.")
 
-    # Zutat-Namen (fuer Bauplan-Filter + Erz-Bedarf)
+    # Ingredient names (for the blueprint filter and the ore demand)
     ingredient_names = set()
     for rec in allrecs:
         for nm in recipe_names(rec.get("recipe", "")):
             ingredient_names.add(nm)
 
-    # Baupläne: nur die, deren Name eine Wikelo-Zutat ist (haelt die Datei klein)
+    # Blueprints: only those whose name is a Wikelo ingredient (keeps the file small)
     print("Lade Bauplan-Rezepte (star-head.de) ...")
     blueprints = []
     try:
@@ -233,20 +361,20 @@ def build_raw():
     except Exception as e:
         print("  Hinweis: Baupläne nicht erreichbar.", e)
 
-    # Erz-Preise (UEX)
+    # Ore prices (UEX)
     print("Lade Erz-Preise (uexcorp.space) ...")
     need_ore = {oc for nm in ingredient_names if (oc := ore_commodity(nm))}
     prices = fetch_prices_uex(need_ore)
     print(f"  Preise fuer {sum(1 for v in prices.values() if v.get('buy') or v.get('sell'))} Erz(e).")
 
-    # Gespeicherten Bestand (falls vorhanden) als Vorbelegung
+    # Saved inventory (if present) as preset
     saved_inv, saved_acq = load_saved(BESTAND)
 
     return {
         "schema": 2,
         "version": VERSION,
         "generated": STAMP,
-        "source": "build",       # wird beim In-App-Refresh ueberschrieben
+        "source": "build",       # overwritten with "refresh" by the in-app refresh
         "wikelo": {
             "meta": d.get("meta", {}),
             "ships": d.get("ships", []),
@@ -257,12 +385,13 @@ def build_raw():
         "blueprints": blueprints,
         "prices": prices,
         "saved_inv": saved_inv,
-        "saved_acq": saved_acq,   # {mission_name: {reward, ts}} – als erworben markierte Angebote
+        "saved_acq": saved_acq,   # {mission_name: {reward, ts}} – offers marked as acquired
     }
 
 
 # ----------------------------------------------------------------- HTML
 HTML_TEMPLATE = r"""<!doctype html>
+<!-- SC Wikelo resource planner (which Wikelo offers the inventory can fulfil, what is missing); generated by wikelo_planer_bauen.py, do not edit by hand -->
 <html lang="de" data-theme="dark">
 <head>
 <meta charset="utf-8">
@@ -270,7 +399,7 @@ HTML_TEMPLATE = r"""<!doctype html>
 <title>SC Wikelo Ressourcen-Planer</title>
 <style>
 :root{
-  /* Wikelo-Rollen, abgeleitet aus den Familien-Tokens in sc_design.py (hell + dunkel) */
+  /* Wikelo roles, derived from the family tokens in sc_design.py (light + dark) */
   --w-navy:var(--panel); --w-navy2:var(--panel); --w-ink:var(--bg); --w-panel:var(--panel); --w-panel2:var(--panel2);
   --w-line:var(--line); --w-txt:var(--ink); --w-dim:var(--muted); --w-gold:var(--accent2); --w-gold2:var(--accent2);
   --w-ok:var(--ok); --w-okbg:var(--okbg); --w-miss:var(--bad); --w-missbg:var(--badbg); --w-chip:var(--panel2);
@@ -396,7 +525,7 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
   border:1px solid var(--w-gold2);color:var(--w-txt);padding:9px 16px;border-radius:8px;z-index:50;
   opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
-/* Changelog-Modal */
+/* Changelog modal */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:60;display:none;
   align-items:center;justify-content:center;padding:20px}
 .modal.open{display:flex}
@@ -413,7 +542,7 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
 .modal-body code{background:var(--w-panel2);border:1px solid var(--w-line);border-radius:4px;padding:0 4px;font-size:12px}
 .modal-body a{word-break:break-word}
 .modal-foot{padding:10px 16px;border-top:1px solid var(--w-line);text-align:right;font-size:12.5px}
-/* Responsive-Overrides ganz am Ende, damit sie die Basis-Regeln ueberschreiben */
+/* Responsive overrides at the very end so they override the base rules */
 .controls{gap:8px 10px}
 .wgrp{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:6px 10px;border:1px solid var(--w-line);border-radius:10px;background:var(--w-panel2)}
 .wlbl{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--w-dim)}
@@ -519,16 +648,18 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
 
 <script id="wikelo-raw" type="application/json">/*__RAW__*/</script>
 <script>
+// localStorage keys: inventory, preferences, cached refreshed raw data, acquired marks
 const LS_INV = 'sc_wikelo_inv_v1', LS_PREF = 'sc_wikelo_pref_v1', LS_RAW = 'sc_wikelo_raw_v2';
-const LS_ACQ = 'sc_wikelo_acq_v1';   // als erworben markierte Angebote (Schluessel = mission_name, stabil)
+const LS_ACQ = 'sc_wikelo_acq_v1';   // offers marked as acquired (key = mission_name, stable)
 const RAW_BAKED = JSON.parse(document.getElementById('wikelo-raw').textContent);
 
-// ===== Aufbereitungslogik – EINZIGE Quelle der Wahrheit (Offline-Build wie In-App-Refresh) =====
+// ===== Preparation logic – the ONE source of truth (offline build and in-app refresh alike) =====
+// Category order, sourcing effort per unit by source class (currency hardest, mining easiest), source order
 const CAT_ORDER = {ship:0,vehicle:1,weapon:2,armor:3,gear:4,intro:5};
 const SRC_UNIT  = {currency:4,mining:1,creature:2,salvage:2,cz:3,loot:3,craft:2,item:1};
 const SRC_ORDER = ['currency','mining','creature','salvage','cz','loot','craft','item'];
 
-// ===== Zweisprachigkeit (DE/EN) =====
+// ===== Bilingual UI (DE/EN) =====
 let LANG = 'de';
 const CAT_LABEL = {
   de:{ship:'Schiff',vehicle:'Fahrzeug',weapon:'Waffe',armor:'Rüstung',gear:'Ausrüstung',intro:'Freischaltung'},
@@ -609,16 +740,23 @@ const I18N = {
     loading:'⏳ loading…', metaBuilt:'built {d}', metaRefreshed:'GitHub build {d}',
     metaLine:'patch {patch} · data {data} · {no} offers · {ni} resources · {fresh}' }
 };
+// Translate key k (fallback: German, then the key itself) and fill {placeholders} from p
 function t(k,p){ let s=(I18N[LANG]&&I18N[LANG][k]!=null)?I18N[LANG][k]:(I18N.de[k]!=null?I18N.de[k]:k);
   if(p) for(const key in p) s=s.split('{'+key+'}').join(p[key]); return s; }
+// Label lookups for the current language with German fallback
 const catLabel=k=>(CAT_LABEL[LANG][k]||CAT_LABEL.de[k]||k);
+// Display name of an ingredient source class
 const srcLabel=k=>(SRC_LABEL[LANG][k]||SRC_LABEL.de[k]||k);
+// Short procurement hint for a source class
 const srcHint =k=>(SRC_HINT[LANG][k]||SRC_HINT.de[k]||'');
+// Display name of an offer status (active / retired)
 const statusLabel=k=>(STATUS_LABEL[LANG][k]||STATUS_LABEL.de[k]||k);
+// Heading of an effort band (0 = available now … 3 = 3+ missing)
 const bandLabel=i=>(BAND_LABEL[LANG][i]||BAND_LABEL.de[i]);
 const RECIPE_RE = /^\s*(\d+)\s*x\s+(.*\S)\s*$/;
-const cmp = (a,b)=> a<b?-1:a>b?1:0;   // code-point-Vergleich wie Python (kein localeCompare)
+const cmp = (a,b)=> a<b?-1:a>b?1:0;   // code-point comparison like Python (no localeCompare)
 
+// Split a recipe string "12 x Name; Other" into [{name, qty}] (parts without "n x" count as 1)
 function parseRecipe(s){
   const out=[];
   for(let part of String(s==null?'':s).split(';')){
@@ -628,11 +766,14 @@ function parseRecipe(s){
   }
   return out;
 }
+// Display name of a Wikelo record: reward, else name, else mission name
 function nameOf(rec){ return String(rec.reward||rec.name||rec.mission_name||'').trim(); }
+// Ore ingredient -> commodity base name for the price lookup (only the four Wikelo ores), else null
 function oreCommodity(name){
   const base=String(name).trim().replace(/\s*\((Ore|Pure)\)$/,'').trim();
   return ['Carinite','Jaclium','Saldynium','Sadaryx'].includes(base)?base:null;
 }
+// Classify an ingredient into a source class by name keywords (currency, mining, creature, loot, …)
 function classify(name, craftable){
   const n=String(name).toLowerCase();
   if(['Wikelo Favor','Polaris Bit','MG Scrip','Council Scrip'].includes(name)) return 'currency';
@@ -644,11 +785,13 @@ function classify(name, craftable){
   if(craftable) return 'craft';
   return 'item';
 }
+// Turn the raw bundle into the app model: sorted offers, currency exchanges, ingredients with source/blueprint/ore
 function transform(raw){
   const w = raw.wikelo||{};
   const allrecs = [...(w.ships||[]), ...(w.items||[]), ...(w.intro_mission?[w.intro_mission]:[])];
   const bpMap={};
   for(const b of (raw.blueprints||[])) if(b && b.name && b.costs && b.costs.length) bpMap[b.name]=b.costs;
+    // Category sort rank; unknown categories go last
   const catRank=a=> (CAT_ORDER[a]!=null?CAT_ORDER[a]:9);
   const offers = allrecs.map(rec=>({
     id: rec.id||'', reward: nameOf(rec), artkey: rec.category||'',
@@ -674,7 +817,7 @@ function transform(raw){
   };
 }
 
-// Aktive Rohdaten: gecachter Refresh (falls Schema passt) sonst eingebackene Build-Daten
+// Active raw data: cached refresh (if the schema matches), otherwise the baked-in build data
 function loadRaw(){
   try{ const c=JSON.parse(localStorage.getItem(LS_RAW)||'null');
     if(c && c.schema===RAW_BAKED.schema && c.wikelo) return c; }catch(e){}
@@ -685,35 +828,41 @@ let DATA = transform(RAW);
 
 // ---- state ----
 let inv = {};
-let acq = {};   // {mission_name: {reward, ts}} – erworben markiert (per mission_name, refresh-stabil)
+let acq = {};   // {mission_name: {reward, ts}} – marked as acquired (by mission_name, stable across refresh)
 let pref = {mode:'aufwand', myRep:0, onlyRep:false, showRetired:false, showAcquired:false, onlyHave:false, priceSrc:'beide', lang:'de'};
 let lsInv = null;
 try{ lsInv = JSON.parse(localStorage.getItem(LS_INV)||'null'); }catch(e){}
 if(lsInv && Object.keys(lsInv).length){ inv = lsInv; }
-else { inv = Object.assign({}, DATA.saved_inv||{}); }   // Vorbelegung aus SC_Wikelo_Bestand.json
+else { inv = Object.assign({}, DATA.saved_inv||{}); }   // preset from SC_Wikelo_Bestand.json
 let lsAcq = null;
 try{ lsAcq = JSON.parse(localStorage.getItem(LS_ACQ)||'null'); }catch(e){}
 if(lsAcq && Object.keys(lsAcq).length){ acq = lsAcq; }
-else { acq = Object.assign({}, DATA.saved_acq||{}); }    // gleiche Vorbelegungs-Logik wie Bestand
+else { acq = Object.assign({}, DATA.saved_acq||{}); }    // same preset logic as the inventory
 try{ Object.assign(pref, JSON.parse(localStorage.getItem(LS_PREF)||'{}')||{}); }catch(e){}
-// Hell/Dunkel: vor dem ersten Zeichnen setzen, Wahl in pref speichern
+// Light/dark: set before the first paint, store the choice in pref
 document.documentElement.setAttribute('data-theme', pref.theme||'dark');
 document.getElementById('themeBtn').addEventListener('click', ()=>{
   const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
   document.documentElement.setAttribute('data-theme',n); pref.theme=n; savePref();
 });
-// Reiter auf schmalen Bildschirmen: Angebote zuerst
+// Tabs on narrow screens: offers first
 scPanels(document.getElementById('wkTabs'),[
   {key:'off',label:'<span class="fh-de">Angebote</span><span class="fh-en">Offers</span>',els:[document.getElementById('wkOffers'),document.getElementById('grpView'),document.getElementById('grpData')]},
   {key:'inv',label:'<span class="fh-de">Mein Bestand</span><span class="fh-en">My inventory</span>',els:[document.getElementById('wkSide'),document.getElementById('grpInv')]}],'off');
 
+// Persist the inventory to localStorage (errors ignored, e.g. blocked storage)
 function saveInv(){ try{localStorage.setItem(LS_INV, JSON.stringify(inv));}catch(e){} }
+// Persist acquired marks
 function saveAcq(){ try{localStorage.setItem(LS_ACQ, JSON.stringify(acq));}catch(e){} }
+// Persist preferences
 function savePref(){ try{localStorage.setItem(LS_PREF, JSON.stringify(pref));}catch(e){} }
+// Amount of ingredient n in the inventory (0 if none)
 function have(n){ return inv[n]||0; }
+// Set the amount of ingredient n (rounded, min 0; 0 removes it), persist and re-render
 function setHave(n,q){ q=Math.max(0,Math.round(q||0)); if(q<=0) delete inv[n]; else inv[n]=q; saveInv(); rerenderAll(); }
-// Erworben-Markierung per mission_name (stabiler als die positionsabhaengige offer.id)
+// Acquired mark keyed by mission_name (more stable than the position-dependent offer.id)
 function isAcq(o){ return !!(o && o.mission && acq[o.mission]); }
+// Toggle the acquired mark of the offer with mission name mkey, persist and re-render
 function toggleAcq(mkey){
   if(!mkey) return;
   if(acq[mkey]){ delete acq[mkey]; toast(t('toastUnacq')); }
@@ -722,16 +871,22 @@ function toggleAcq(mkey){
 }
 
 // ---- helpers ----
+// DOM shortcuts: first match / all matches as array
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+// Show a short status message at the bottom for 1.8 s
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
+// Escape text for safe insertion into HTML
 function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// Format a number with German thousands separators
 function fmt(n){ return Math.round(n).toLocaleString('de-DE'); }
+// Sourcing effort per unit of an ingredient, from its source class (default 2)
 function unitOf(name){ const info=DATA.ingredients[name]||{}; return SRC_UNIT[info.src]||2; }
-// Aufwand (mengengewichtet) -> 1..5 Sterne, log-gestaucht (kalibriert: Wikelo Arrive≈1★, Idris≈5★)
+// Effort (quantity-weighted) -> 1..5 stars, log-compressed (calibrated: Wikelo Arrive≈1★, Idris≈5★)
 function starsOf(raw){ if(raw<=0) return 0; const l=Math.log10(raw);
   return l<1?1 : l<1.6?2 : l<2.1?3 : l<2.7?4 : 5; }
 
 // offer analysis
+// Compare an offer with the inventory: missing items, band (0..3), weighted effort, stars, reputation check
 function analyze(o){
   let missTypes=0, missQty=0, missing=[], effort=0;
   for(const it of o.recipe){
@@ -739,7 +894,7 @@ function analyze(o){
     if(gap>0){ missTypes++; missQty+=gap; effort+=gap*unitOf(it.name); missing.push({name:it.name, gap, need, has}); }
   }
   const band = missTypes>=3?3:missTypes;
-  const stars = starsOf(effort);                          // Gesamt-Beschaffungsaufwand des Fehlenden
+  const stars = starsOf(effort);                          // total sourcing effort of what is missing
   const repOk = (pref.myRep||0) >= (o.rep_req||0);
   return {missTypes, missQty, missing, band, effort, stars, repOk};
 }
@@ -747,6 +902,7 @@ function analyze(o){
 const BANDS=[ {k:0,dot:'var(--w-ok)'}, {k:1,dot:'var(--w-gold2)'}, {k:2,dot:'var(--w-band2)'}, {k:3,dot:'var(--w-band3)'} ];
 
 // ---- inventory panel ----
+// Render the inventory list grouped by source class, honouring the search and "only have" filter
 function renderRes(){
   const q=($('#resSearch').value||'').toLowerCase();
   const onlyHave=pref.onlyHave;
@@ -780,6 +936,7 @@ function renderRes(){
 }
 
 // ---- procurement hint for a missing ingredient ----
+// Procurement hint for a missing ingredient: blueprint recipe, Wikelo exchange, or ore price
 function hintFor(name){
   const info=DATA.ingredients[name]||{};
   let extra='';
@@ -799,6 +956,7 @@ function hintFor(name){
 }
 
 // ---- offers ----
+// Build the HTML card of one offer: ingredient chips, missing-item details, effort stars, badges
 function offerCard(o){
   const a=analyze(o);
   const retired = o.status!=='active';
@@ -810,7 +968,7 @@ function offerCard(o){
     return `<span class="chip ${ok?'ok':'miss'}" data-n="${esc(it.name)}" ${ok?'':'data-miss="1"'}>
       <span class="q">${need}×</span>${esc(it.name)}${cr}${ok?'':` <small>(${has}/${need})</small>`}</span>`;
   }).join('');
-  // Details: alle fehlenden Zutaten mit Beschaffungs-Hinweis
+  // Details: every missing ingredient with its procurement hint
   let detHtml='';
   if(a.missing.length){
     detHtml = `<div class="det">`+ a.missing.map(m=>{
@@ -820,7 +978,7 @@ function offerCard(o){
           <div class="sub">${h.extra||esc(h.hint)}</div></div>`;
       }).join('') + `</div>`;
   }
-  // Aufwand-Sterne (1..5) – mengengewichtet
+  // Effort stars (1..5) – quantity-weighted
   const eff = a.stars;
   const dots = a.missTypes? `<span class="effort">${t('effort')} `+
     [1,2,3,4,5].map(i=>`<i class="edot ${i<=eff?'on':''}"></i>`).join('')+`</span>` : '';
@@ -843,8 +1001,9 @@ function offerCard(o){
   </div>`;
 }
 
+// Apply the offer filters: acquired, retired, reachable reputation, search text
 function passFilter(o,a){
-  if(isAcq(o) && !pref.showAcquired) return false;   // erworben -> ausgeblendet (ausser Anzeige aktiv)
+  if(isAcq(o) && !pref.showAcquired) return false;   // acquired -> hidden (unless shown)
   if(o.status!=='active' && !pref.showRetired) return false;
   if(pref.onlyRep && !a.repOk) return false;
   const q=($('#offerSearch').value||'').toLowerCase();
@@ -855,12 +1014,14 @@ function passFilter(o,a){
   return true;
 }
 
+// Order within a band: band, reputation ok, effort, missing amount, then name
 function sortCmp(p,q){
   const A=[p.a.band, p.a.repOk?0:1, p.a.effort, p.a.missQty, p.o.reward.toLowerCase()];
   const B=[q.a.band, q.a.repOk?0:1, q.a.effort, q.a.missQty, q.o.reward.toLowerCase()];
   for(let i=0;i<A.length;i++){ if(A[i]<B[i])return -1; if(A[i]>B[i])return 1; } return 0;
 }
 
+// Render all filtered offers, grouped by effort band or by category depending on the mode
 function renderOffers(){
   const rows=DATA.offers.map(o=>({o,a:analyze(o)})).filter(x=>passFilter(x.o,x.a));
   let html='';
@@ -886,23 +1047,27 @@ function renderOffers(){
   $('#offers').innerHTML = html || `<div class="empty">${t('noOffers')}</div>`;
 }
 
+// Show the acquired count; the tooltip lists acquired offers no longer in the data
 function updateAcqCount(){
   const el=$('#acqCount'); if(!el) return;
   const total=Object.keys(acq).length;
   el.textContent = total? t('acqCount',{n:total}) : '';
-  // Orphans = erworbene Angebote, deren mission_name in den aktuellen Daten fehlt (nach Refresh moeglich)
+  // Orphans = acquired offers whose mission_name is missing from the current data (possible after a refresh)
   const present=new Set(DATA.offers.map(o=>o.mission));
   const orphans=Object.entries(acq).filter(([k])=>!present.has(k)).map(([,v])=>v.reward);
   el.title = orphans.length? t('acqOrphan',{n:orphans.length})+': '+orphans.join(', ') : '';
 }
+// Re-render inventory, offers and acquired count
 function rerenderAll(){ renderRes(); renderOffers(); updateAcqCount(); }
 
-// ---- Schnell-Eingabe (Kommando-Leiste) ----
+// ---- Quick entry (command bar) ----
 let quickMatches=[], quickIndex=0;
+// Split quick-entry text into a search query and an optional number ("50" sets, "+50" adds)
 function parseQuick(raw){
   const m=raw.match(/^(.*?)\s+([+]?\d+)\s*$/);
   return m ? {query:m[1].trim(), num:m[2]} : {query:raw.trim(), num:null};
 }
+// Rank up to 8 ingredients whose name contains all tokens (prefix and frequent ingredients first)
 function qMatch(q){
   q=q.toLowerCase().trim(); if(!q) return [];
   const toks=q.split(/\s+/), out=[];
@@ -912,13 +1077,14 @@ function qMatch(q){
     let score=0;
     if(ln.startsWith(q)) score-=100;
     const idx=ln.indexOf(q); if(idx>=0) score-=(50-Math.min(idx,49));
-    score-=(DATA.ingredients[name].n_offers||0)*0.2;   // häufige Zutaten bevorzugen
+    score-=(DATA.ingredients[name].n_offers||0)*0.2;   // prefer frequent ingredients
     score+=ln.length*0.02;
     out.push({name,score});
   }
   out.sort((a,b)=>a.score-b.score);
   return out.slice(0,8);
 }
+// Render the suggestion list under the quick entry with the resulting amount
 function renderQuick(){
   const raw=$('#quickAdd').value; const {query,num}=parseQuick(raw);
   quickMatches=qMatch(query);
@@ -934,6 +1100,7 @@ function renderQuick(){
   }).join('');
   box.classList.add('open');
 }
+// Apply the quick entry to suggestion i (default: highlighted): +1, +n or set to n
 function applyQuick(i){
   const idx=(i!=null)?i:quickIndex, m=quickMatches[idx]; if(!m) return;
   const {num}=parseQuick($('#quickAdd').value);
@@ -943,7 +1110,8 @@ function applyQuick(i){
   $('#quickAdd').value=''; quickIndex=0; renderQuick(); $('#quickAdd').focus();
 }
 
-// ---- Schrittweite per Modifier: Klick +1 · Shift +10 · Strg +50 · Alt +100 ----
+// ---- Step size by modifier: click +1 · Shift +10 · Ctrl +50 · Alt +100 ----
+// Step size of a mouse event from its modifier keys
 function stepOf(e){ if(e.altKey) return 100; if(e.ctrlKey||e.metaKey) return 50; if(e.shiftKey) return 10; return 1; }
 
 // ---- events: inventory ----
@@ -952,7 +1120,7 @@ $('#resList').addEventListener('click', e=>{
   const n=row.dataset.n, s=stepOf(e);
   const btn=e.target.closest('.qbtn');
   if(btn){ setHave(n, have(n)+(btn.dataset.a==='inc'?s:-s)); return; }
-  // Zeilenklick: mit Modifier +Schritt, sonst an/aus (0<->1)
+  // Row click: with modifier +step, otherwise toggle (0<->1)
   if(s>1) setHave(n, have(n)+s);
   else setHave(n, have(n)>0?0:1);
 });
@@ -977,7 +1145,7 @@ $('#offers').addEventListener('click', e=>{
 });
 
 // ---- events: filters ----
-// ---- events: Schnell-Eingabe ----
+// ---- events: quick entry ----
 $('#quickAdd').addEventListener('input', renderQuick);
 $('#quickAdd').addEventListener('keydown', e=>{
   if(e.key==='ArrowDown'){ e.preventDefault(); quickIndex=Math.min(quickIndex+1, quickMatches.length-1); renderQuick(); }
@@ -1001,15 +1169,17 @@ $('#modeSeg').addEventListener('click', e=>{
   $$('#modeSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderOffers();
 });
 
-// ---- Bestand speichern / laden (Datei, freier Speicherort) ----
-// Speicherformat v2: {schema, inventory:{name:menge}, acquired:{mission:{reward,ts}}}.
-// Wo verfuegbar (Chromium, sicherer Kontext) nutzt Speichern/Laden die File System Access API,
-// sodass der Ort frei waehlbar ist und ein geladenes File beim naechsten Speichern zurueckgeschrieben
-// wird. Sonst Fallback auf Download / Datei-Auswahl. Unter file:// ist die API oft gesperrt -> Fallback.
-let fileHandle = null;   // zuletzt gewaehltes File (nur waehrend der Sitzung), fuer Wiederspeichern
+// ---- Save / load inventory (file, free location) ----
+// File format v2: {schema, inventory:{name:amount}, acquired:{mission:{reward,ts}}}.
+// Where available (Chromium, secure context) save/load use the File System Access API,
+// so the location is free to choose and a loaded file is written back on the next save.
+// Otherwise fall back to download / file picker. Under file:// the API is often blocked -> fallback.
+let fileHandle = null;   // last chosen file (this session only), for saving back
 const FS_TYPES = [{description:'Wikelo-Bestand (JSON)', accept:{'application/json':['.json']}}];
+// The object written to SC_Wikelo_Bestand.json
 function buildSaveObject(){ return {schema:2, inventory:inv, acquired:acq}; }
 
+// Save the inventory JSON as a browser download (fallback without File System Access API)
 function downloadStock(text){
   const blob=new Blob([text],{type:'application/json'});
   const url=URL.createObjectURL(blob);
@@ -1018,6 +1188,7 @@ function downloadStock(text){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast(t('toastSaved'));
 }
+// Save the inventory to the chosen file; a cancelled dialog does nothing, other errors fall back to download
 async function saveStock(){
   const text=JSON.stringify(buildSaveObject(),null,1);
   if(window.showSaveFilePicker){
@@ -1027,17 +1198,18 @@ async function saveStock(){
       toast(t('toastSaved')); return;
     }catch(err){
       fileHandle=null;
-      if(err && err.name==='AbortError') return;   // Nutzer hat Dialog abgebrochen -> NICHT herunterladen
-      // andere Fehler (kein Zugriff / file://): Fallback auf Download
+      if(err && err.name==='AbortError') return;   // user cancelled the dialog -> do NOT download
+      // other errors (no access / file://): fall back to download
     }
   }
   downloadStock(text);
 }
+// Parse a loaded inventory file (v2 or old flat format), replace inventory and acquired marks
 function applyLoaded(text){
   try{
     const o=JSON.parse(text);
     if(typeof o!=='object'||o===null||Array.isArray(o)) throw 0;
-    // v2 mit inventory/acquired, sonst altes flaches {name:menge} = nur Bestand
+    // v2 with inventory/acquired, otherwise old flat {name:amount} = inventory only
     const stock = (o.inventory && typeof o.inventory==='object') ? o.inventory : o;
     const acquired = (o.inventory && o.acquired && typeof o.acquired==='object') ? o.acquired : {};
     inv={}; for(const [k,v] of Object.entries(stock)){ const q=Math.max(0,Math.round(+v||0)); if(q>0) inv[k]=q; }
@@ -1048,21 +1220,22 @@ function applyLoaded(text){
     saveInv(); saveAcq(); rerenderAll(); toast(t('toastLoaded',{n:Object.keys(inv).length}));
   }catch(err){ toast(t('toastBadFile')); }
 }
+// Load an inventory file via the File System Access API, else via the hidden file input
 async function loadStock(){
   if(window.showOpenFilePicker){
     try{
       const [h]=await window.showOpenFilePicker({types:FS_TYPES, multiple:false});
       const f=await h.getFile(); const text=await f.text();
-      applyLoaded(text); fileHandle=h;   // gewaehltes File merken -> Speichern schreibt dorthin zurueck
+      applyLoaded(text); fileHandle=h;   // remember the file -> saving writes back to it
       return;
-    }catch(err){ if(err && err.name==='AbortError') return; /* sonst: Fallback */ }
+    }catch(err){ if(err && err.name==='AbortError') return; /* otherwise: fallback */ }
   }
   $('#fileInput').click();
 }
 $('#btnSave').addEventListener('click', saveStock);
-$('#btnSave').addEventListener('contextmenu', e=>{ e.preventDefault(); fileHandle=null; saveStock(); });  // Rechtsklick: Speicherort neu waehlen
+$('#btnSave').addEventListener('contextmenu', e=>{ e.preventDefault(); fileHandle=null; saveStock(); });  // right-click: choose a new location
 $('#btnLoad').addEventListener('click', loadStock);
-$('#fileInput').addEventListener('change', e=>{   // Fallback ohne File System Access API
+$('#fileInput').addEventListener('change', e=>{   // fallback without File System Access API
   const f=e.target.files[0]; if(!f) return;
   const rd=new FileReader();
   rd.onload=()=>applyLoaded(rd.result);
@@ -1070,19 +1243,23 @@ $('#fileInput').addEventListener('change', e=>{   // Fallback ohne File System A
 });
 $('#btnReset').addEventListener('click', ()=>{ if(confirm(t('confirmClear'))){ inv={}; saveInv(); rerenderAll(); } });
 
-// ---- In-App-Datenaktualisierung (Refresh) ----
+// ---- In-app data refresh ----
+// Direct source endpoints (the refresh itself only loads DATA_URL)
 const DATA_URL='https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/data.json';
 const EP = {
   wikelo:     'https://seeknd.github.io/Wikelo/data/wikelo_data.json',
   blueprints: 'https://api.star-head.de/blueprint',
   uex:        'https://api.uexcorp.space/2.0/commodities',
 };
+// Fetch a URL without cache and parse JSON; throws on HTTP errors
 async function getJSON(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+// Set of all ingredient names used in the Wikelo recipes
 function ingredientNamesFrom(w){
   const set=new Set(), recs=[...(w.ships||[]),...(w.items||[]),...(w.intro_mission?[w.intro_mission]:[])];
   for(const rec of recs) for(const it of parseRecipe(rec.recipe||'')) set.add(it.name);
   return set;
 }
+// Fetch star-head blueprints, keeping only those named like a Wikelo ingredient
 async function fetchBlueprints(names){
   const bp=await getJSON(EP.blueprints), out=[];
   for(const b of bp){ const nm=b&&b.name; if(!nm||!names.has(nm)) continue;
@@ -1090,10 +1267,12 @@ async function fetchBlueprints(names){
     if(costs.length) out.push({name:nm, costs}); }
   return out;
 }
+// Ore commodity base names needed by the given ingredients
 function needOreBases(names){ const s=new Set(); for(const n of names){ const o=oreCommodity(n); if(o) s.add(o); } return s; }
+// Fetch UEX ore prices (cheapest buy, best sell) per base; same rules as the Python build
 async function fetchPricesUex(bases){
   if(!bases.size) return {};
-  const CAP=100000;   // Plausibilitaet: UEX hat fuer neue Erze teils Platzhalter (0 / Millionen)
+  const CAP=100000;   // plausibility cap: UEX has placeholders (0 / millions) for some new ores
   const res=await getJSON(EP.uex), data=(res&&res.data)||res||[], out={};
   for(const c of data){ const nm=String(c.name||'').trim(), base=nm.replace(/\s*\((Ore|Pure|Raw)\)$/,'').trim();
     if(!bases.has(base)) continue;
@@ -1103,9 +1282,10 @@ async function fetchPricesUex(bases){
     if(e.buy||e.sell) out[base]=e; }
   return out;
 }
+// Load the latest data.json from GitHub Pages and switch to it, keeping the build's inventory preset
 async function refreshData(){
-  // Lädt den zuletzt auf GitHub gebauten Datenstand (täglich 05:00 UTC). Kein Direktzugriff
-  // auf star-head/seeknd/UEX aus dem Browser mehr – das schont die Community-Quellen.
+  // Loads the data last built on GitHub (daily 05:00 UTC). No direct access to
+  // star-head/seeknd/UEX from the browser any more – this spares the community sources.
   const btn=$('#btnRefresh'); if(btn.dataset.busy) return;
   btn.dataset.busy='1'; btn.disabled=true; const label=btn.textContent; btn.textContent=t('loading');
   try{
@@ -1128,12 +1308,14 @@ $('#btnRefresh').addEventListener('contextmenu', e=>{ e.preventDefault();
 });
 $('#priceSrc').addEventListener('change', e=>{ pref.priceSrc=e.target.value; savePref(); });
 
+// Fill the header data line: patch, data date, counts, build or refresh date
 function updateMeta(){
   const m=DATA.meta, fresh = m.source==='refresh' ? t('metaRefreshed',{d:m.generated}) : t('metaBuilt',{d:m.generated});
   $('#meta').textContent = t('metaLine',{v:m.version, patch:m.patch, data:m.data_updated, no:m.n_offers, ni:m.n_ingredients, fresh});
 }
 
-// ---- Sprache (DE/EN) ----
+// ---- Language (DE/EN) ----
+// Translate all static elements marked with data-i18n / -ph / -title and the language switch
 function applyStaticI18n(){
   document.querySelectorAll('[data-i18n]').forEach(el=> el.textContent=t(el.dataset.i18n));
   document.querySelectorAll('[data-i18n-ph]').forEach(el=> el.placeholder=t(el.dataset.i18nPh));
@@ -1167,8 +1349,18 @@ rerenderAll();
 
 
 def fill_header(html):
-    """Gemeinsame Kopfzeile, „Was ist neu?“-Dialog und Changelog einsetzen (kopfzeile.py).
-    Hell/Dunkel über das gemeinsame Design (sc_design.py)."""
+    """Insert the shared header, the "What's new?" dialog and the changelog.
+
+    Fills the placeholders ``<!--FH_HEADER-->``, ``<!--FH_FONTS-->``, ``/*FH_CSS*/``,
+    ``/*FH_JS*/`` and ``<!--FH_DIALOG-->`` from kopfzeile.py and the shared
+    design (light/dark) from sc_design.py; the refresh button goes into the header.
+
+    Args:
+        html: The template with ``/*__RAW__*/`` already replaced.
+
+    Returns:
+        The complete page HTML.
+    """
     refresh = ('<button class="btn fh-btn" id="btnRefresh" type="button" data-i18n="btnRefresh" '
                'data-i18n-title="btnRefreshTitle" title="Neuesten täglich gebauten Datenstand von GitHub laden">'
                '🔄 Neuesten Stand laden (GitHub)</button>')
@@ -1189,14 +1381,20 @@ def fill_header(html):
 
 
 def main():
+    """Build SC_Wikelo_Planer.html and data.json from freshly downloaded data.
+
+    The raw bundle is embedded as JSON in the page (``</`` escaped so it cannot
+    close the script tag); data.json gets the same bundle without the personal
+    inventory and acquired marks.
+    """
     raw = build_raw()
     payload = json.dumps(raw, ensure_ascii=False, separators=(",", ":"))
     payload = payload.replace("</", "<\\/")
     html = HTML_TEMPLATE.replace("/*__RAW__*/", payload)
     html = fill_header(html)
     OUTHTML.write_text(html, encoding="utf-8")
-    # data.json: derselbe Stand ohne den persoenlichen Bestand. Der Knopf "Neuesten
-    # Stand laden" in der App holt diese Datei von GitHub Pages statt star-head/seeknd/UEX.
+    # data.json: the same snapshot without the personal inventory. The app's "load latest"
+    # button fetches this file from GitHub Pages instead of star-head/seeknd/UEX.
     pub = {k: v for k, v in raw.items() if k not in ("saved_inv", "saved_acq")}
     OUTJSON.write_text(json.dumps(pub, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print("gespeichert:", OUTJSON)
