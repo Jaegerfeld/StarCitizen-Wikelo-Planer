@@ -29,7 +29,7 @@ is **bilingual (English/German)**, switchable in the header.
   paths, ore price hints.
 - **Daily data:** the online version is rebuilt every day (GitHub Actions, 05:00 UTC). The in-app
   button **Load latest build (GitHub)** fetches that build's `data.json` from GitHub Pages — also
-  from an offline copy — instead of hitting seeknd, star-head and UEX directly; cached locally,
+  from an offline copy — instead of hitting seeknd and star-head directly; cached locally,
   right-click resets to the built-in data.
 - **Reputation filter**, hide retired offers, **save/load stock** as `SC_Wikelo_Bestand.json`.
 
@@ -47,7 +47,7 @@ Requires **Python 3.9+**, **no external packages** (standard library only). Prod
 - **Wikelo offers:** community database *Wikelo's Emporium Reference*
   ([seeknd.github.io/Wikelo](https://seeknd.github.io/Wikelo/))
 - **Blueprint recipes:** [star-head.de](https://star-head.de) (open API)
-- **Ore prices:** [UEX](https://uexcorp.space) (open API)
+- **Ore prices:** [star-head.de](https://star-head.de) (shop sell prices with location; same source as the Handels-Planer)
 
 Data is patch-dependent and rotates — verify in-game when in doubt.
 

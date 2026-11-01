@@ -14,4 +14,4 @@
 """Single source of the planner's version number."""
 
 #: Current release version (SemVer), shown in the app and written to data.json.
-VERSION = "1.6.1"
+VERSION = "1.6.2"

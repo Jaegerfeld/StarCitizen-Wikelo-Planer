@@ -18,8 +18,11 @@
 #     - Bauplan-Rezepte craftbarer Zutaten: api.star-head.de/blueprint
 #       (nur Baupläne, deren Name eine Wikelo-Zutat ist – hält die Datei klein)
 #     - Erz-Preise (aUEC/SCU) für Carinite, Jaclium, Saldynium, Sadaryx:
-#       api.uexcorp.space/2.0/commodities; UEX liefert keinen Ort, Platzhalter
-#       (0 oder Millionenwerte) werden per Plausibilitätsgrenze verworfen.
+#       api.star-head.de (commodity, shop, shopitem/price) mit Shop und Ort,
+#       dieselbe Quelle wie im Handels-Planer. Die Erze sind nicht kaufbar,
+#       es gibt nur Verkaufswerte; sie liegen im Millionenbereich und sind echt
+#       (am 28.10.2026 per Screenshot bestätigt). Bis 1.6.1 kamen die Preise von
+#       UEX und wurden ab 100 000 als Platzhalter verworfen, daher „0 Erz-Preise“.
 #   Python bündelt nur die Rohdaten; die Aufbereitung (Zutaten-Kategorien,
 #   Beschaffungs-Aufwand, Bänder „sofort / 1 / 2 / 3+ fehlen“, Sortierung,
 #   Beschaffungs-Hinweise) läuft einmalig im Browser (transform() im HTML),
@@ -66,6 +69,10 @@ OUTJSON  = OUTDIR / "data.json"
 DATA_URL = "https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/data.json"
 #: Optional personal inventory file; preloaded into the build when present.
 BESTAND  = OUTDIR / "SC_Wikelo_Bestand.json"
+#: Base URL of the star-head.de JSON API (blueprints and ore prices).
+STARHEAD = "https://api.star-head.de"
+#: star-head returns pricePerItem per cSCU; multiplying by this gives aUEC/SCU (as in the Handels-Planer).
+PRICE_FACTOR = 100
 #: Build date (ISO), shown in the app and stored as ``generated``.
 STAMP    = datetime.date.today().isoformat()
 try:
@@ -83,8 +90,8 @@ PAT = re.compile(r'^\s*(\d+)\s*x\s+(.*\S)\s*$')
 def ore_commodity(name):
     """Map an ore ingredient to its commodity base name for the price lookup.
 
-    Only the four Wikelo ores that UEX lists are recognised; the suffixes
-    ``(Ore)`` and ``(Pure)`` are stripped first.
+    Only the four Wikelo ores are recognised; the suffixes ``(Ore)`` and
+    ``(Pure)`` are stripped first.
 
     Args:
         name: Ingredient name as it appears in a Wikelo recipe.
@@ -202,44 +209,85 @@ def parse_recipe(recipe):
     return out
 
 
-# ----------------------------------------------------------------- Ore prices (UEX)
-def fetch_prices_uex(need_bases):
-    """Fetch ore prices (aUEC/SCU) per commodity base name from the UEX API.
+# ----------------------------------------------------------------- Ore prices (star-head)
+def _shop_places():
+    """Map star-head shop ids to a readable place name, ``"Shop (Station)"``.
 
-    UEX returns flat ``price_buy``/``price_sell`` values without terminal or
-    location, so ``loc`` stays ``None``. Values outside ``0 < price <= 100000``
-    are UEX placeholders for new ores and are ignored. If UEX is unreachable,
-    a notice is printed and the build continues without prices.
+    Returns:
+        Dict ``{shop_id: place}``; empty if the shop list is unreachable (the
+        price rows then show the bare shop name).
+    """
+    try:
+        shops = get_json_url(STARHEAD + "/shop")
+    except Exception as e:
+        print("  Hinweis: Shop-Liste (star-head) nicht erreichbar.", e)
+        return {}
+    out = {}
+    for sh in shops or []:
+        name = sh.get("name") or ""
+        parent = (sh.get("parent") or {}).get("name") or ""
+        # star-head spells some stations without spaces ("ArcCorpMining Area 045"), so compare loosely.
+        same = re.sub(r"\s+", "", parent).lower() == re.sub(r"\s+", "", name).lower()
+        out[sh.get("id")] = f"{name} ({parent})" if parent and not same else name
+    return out
+
+
+def fetch_prices_starhead(need_bases):
+    """Fetch ore prices (aUEC/SCU) per commodity base name from star-head.de.
+
+    Every star-head commodity whose name reduces to a needed base (for example
+    ``"Jaclium"`` and ``"Jaclium (Ore)"``) is queried for buy and sell prices
+    via ``/shopitem/price``. The cheapest buy and the best sell win, each with
+    its place. star-head's ``pricePerItem`` is per cSCU and is converted with
+    :data:`PRICE_FACTOR`. Prices of 0 are ignored; there is no upper limit,
+    because these ores really sell for millions per SCU. If star-head is
+    unreachable, a notice is printed and the build continues without prices.
 
     Args:
         need_bases: Set of commodity base names that Wikelo recipes need.
 
     Returns:
-        Dict ``{base: {"buy": {"price", "loc"} | None, "sell": ... | None,
-        "src": "uex"}}``; only bases with at least one valid price appear.
+        Dict ``{base: {"buy": {"price", "loc", "date"} | None, "sell": ... | None,
+        "n_sell": int, "src": "starhead"}}``; only bases with at least one valid
+        price appear.
     """
     out = {}
     if not need_bases:
         return out
     try:
-        res = get_json_url("https://api.uexcorp.space/2.0/commodities")
+        commodities = get_json_url(STARHEAD + "/commodity")
     except Exception as e:
-        print("  Hinweis: UEX-Preise nicht erreichbar -> ohne Erz-Preise.", e)
+        print("  Hinweis: Erz-Preise (star-head) nicht erreichbar -> ohne Erz-Preise.", e)
         return out
-    CAP = 100000   # plausibility cap in aUEC/SCU; UEX has placeholders (0 or millions) for new ores
-    data = res.get("data") if isinstance(res, dict) else res
-    for c in (data or []):
-        nm = (c.get("name") or "").strip()
-        base = re.sub(r'\s*\((Ore|Pure|Raw)\)$', '', nm).strip()
+    places = _shop_places()
+    for c in commodities or []:
+        base = re.sub(r'\s*\((Ore|Pure|Raw)\)$', '', (c.get("name") or "").strip()).strip()
         if base not in need_bases:
             continue
-        pb = c.get("price_buy") or 0
-        ps = c.get("price_sell") or 0
-        entry = out.get(base, {"buy": None, "sell": None, "src": "uex"})
-        if 0 < pb <= CAP and (entry["buy"] is None or pb < entry["buy"]["price"]):
-            entry["buy"] = {"price": round(pb), "loc": None}
-        if 0 < ps <= CAP and (entry["sell"] is None or ps > entry["sell"]["price"]):
-            entry["sell"] = {"price": round(ps), "loc": None}
+        entry = out.get(base, {"buy": None, "sell": None, "n_sell": 0, "src": "starhead"})
+        for tt in ("Buy", "Sell"):
+            try:
+                rows = get_json_url(f"{STARHEAD}/shopitem/price?commodityId={c['id']}&tradeType={tt}")
+            except Exception as e:
+                print(f"  Hinweis: Preise für {c.get('name')} ({tt}) nicht erreichbar.", e)
+                continue
+            for x in rows or []:
+                price = round((x.get("pricePerItem") or 0) * PRICE_FACTOR)
+                if price <= 0:
+                    continue
+                shop = x.get("shop") or {}
+                hit = {"price": price, "loc": places.get(shop.get("id")) or shop.get("name") or None,
+                       "date": (x.get("lastUpdated") or "")[:10]}
+                # On equal prices the more recent report wins, so the shown date is the freshest.
+                if tt == "Buy":
+                    cur = entry["buy"]
+                    if cur is None or (price, cur["date"]) < (cur["price"], hit["date"]):
+                        entry["buy"] = hit
+                if tt == "Sell":
+                    entry["n_sell"] += 1
+                    cur = entry["sell"]
+                    if cur is None or (price, hit["date"]) > (cur["price"], cur["date"]):
+                        entry["sell"] = hit
         if entry["buy"] or entry["sell"]:
             out[base] = entry
     return out
@@ -314,7 +362,7 @@ def build_raw():
     """Download all sources and bundle them into the raw data object (schema 2).
 
     Wikelo data is mandatory (exits via :func:`netzfehler_exit` if unreachable);
-    star-head blueprints and UEX prices are optional and only print a notice
+    star-head blueprints and ore prices are optional and only print a notice
     on failure.
 
     Returns:
@@ -345,7 +393,7 @@ def build_raw():
     print("Lade Bauplan-Rezepte (star-head.de) ...")
     blueprints = []
     try:
-        bp = get_json_url("https://api.star-head.de/blueprint")
+        bp = get_json_url(STARHEAD + "/blueprint")
         for b in bp:
             nm = b.get("name", "")
             if nm not in ingredient_names:
@@ -361,10 +409,10 @@ def build_raw():
     except Exception as e:
         print("  Hinweis: Baupläne nicht erreichbar.", e)
 
-    # Ore prices (UEX)
-    print("Lade Erz-Preise (uexcorp.space) ...")
+    # Ore prices (star-head)
+    print("Lade Erz-Preise (star-head.de) ...")
     need_ore = {oc for nm in ingredient_names if (oc := ore_commodity(nm))}
-    prices = fetch_prices_uex(need_ore)
+    prices = fetch_prices_starhead(need_ore)
     print(f"  Preise fuer {sum(1 for v in prices.values() if v.get('buy') or v.get('sell'))} Erz(e).")
 
     # Saved inventory (if present) as preset
@@ -595,15 +643,6 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
       <button class="btn danger" id="btnReset" data-i18n="btnReset">leeren</button>
       <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
     </div>
-    <div class="wgrp" id="grpData" role="group" aria-labelledby="wgData"><span class="wlbl" id="wgData" data-i18n="grpData">Daten</span>
-      <label><span data-i18n="priceLabel">Preise:</span>
-        <select id="priceSrc">
-          <option value="beide" data-i18n="priceBoth">beide (star-head + UEX)</option>
-          <option value="uex" data-i18n="priceUex">nur UEX</option>
-          <option value="starhead" data-i18n="priceSh">nur star-head</option>
-        </select>
-      </label>
-    </div>
   </div>
 </div>
 
@@ -678,11 +717,10 @@ const BAND_LABEL = {
   en:['Available now','1 ingredient missing','2 ingredients missing','3+ ingredients missing']};
 const I18N = {
   de:{ modeEffort:'Nach Aufwand', modeGroup:'Nach Artikelgruppe', repLabel:'Mein Wikelo-Ruf:',
-    grpView:'Ansicht', grpInv:'Bestand', grpData:'Daten', onlyRep:'nur erfüllbarer Ruf', showRetired:'zurückgezogene zeigen', showAcquired:'erworbene zeigen',
+    grpView:'Ansicht', grpInv:'Bestand', onlyRep:'nur erfüllbarer Ruf', showRetired:'zurückgezogene zeigen', showAcquired:'erworbene zeigen',
     offerSearchPh:'Angebote filtern…',
     btnSave:'💾 Bestand speichern', btnSaveTitle:'Klick: speichern · Rechtsklick: Speicherort neu wählen',
-    btnLoad:'📂 Bestand laden', btnReset:'leeren', priceLabel:'Preise:',
-    priceBoth:'beide (star-head + UEX)', priceUex:'nur UEX', priceSh:'nur star-head',
+    btnLoad:'📂 Bestand laden', btnReset:'leeren',
     btnRefresh:'🔄 Neuesten Stand laden (GitHub)', btnRefreshTitle:'Neuesten täglich gebauten Datenstand von GitHub laden (Rechtsklick: auf Build-Daten zurücksetzen)',
     btnChangelog:'🆕 Was ist neu?', btnSwap:'Bauplan-Planer', btnSwapHandel:'Handels-Planer', btnGuides:'Guides-Übersicht', clTitle:'Was ist neu?', clGh:'Vollständiges Changelog auf GitHub ↗',
     panelTitle:'Mein Ressourcen-Bestand', quickPh:'⚡ Schnell-Eingabe: z. B. „carinite 50" · Enter',
@@ -699,21 +737,20 @@ const I18N = {
     toastAcq:'als erworben markiert – ausgeblendet', toastUnacq:'wieder eingeblendet',
     getMissing:'Fehlendes beschaffen', complete:'✓ komplett', effort:'Aufwand', repNeed:'braucht Ruf {n}', repRew:'Belohnung +{n} Ruf',
     haveShort:'hast {have}/{need}', offer:'Angebot', offers:'Angebote', noRes:'Keine Ressource gefunden.', noOffers:'Keine Angebote für diese Filter.',
-    exchange:'Tausch:', priceBuy:'kaufbar ≈ {p} aUEC/SCU', priceSell:'Verkaufswert ≈ {p} aUEC/SCU', avgUex:'Ø UEX', avgMarket:'Ø Markt',
+    exchange:'Tausch:', priceBuy:'kaufbar ≈ {p} aUEC/SCU', priceSell:'Verkaufswert ≈ {p} aUEC/SCU', avgMarket:'Ø Markt', moreSell:'{n} Verkaufsorte bei star-head', priceDate:'Stand {d}',
     confirmClear:'Wirklich den ganzen Bestand leeren?', confirmReset:'Auf die eingebauten Build-Daten zurücksetzen (gecachte Aktualisierung verwerfen)?',
     toastReset:'Auf Build-Daten zurückgesetzt', toastRefreshed:'Neuester Stand geladen · {n} Angebote, Patch {p}', toastSame:'Du hast bereits den neuesten Stand.',
     toastRefreshFail:'GitHub nicht erreichbar – bestehende Daten bleiben',
-    toastBpFail:'Baupläne (star-head) nicht erreichbar', toastPriceFail:'Preise (UEX) nicht erreichbar',
+    toastBpFail:'Baupläne (star-head) nicht erreichbar',
     toastSaved:'Bestand gespeichert', toastLoaded:'Bestand geladen: {n} Ressourcen',
     toastBadFile:'Ungültige Datei (kein Bestand-JSON)', toastPreload:'Bestand aus SC_Wikelo_Bestand.json vorgeladen',
     loading:'⏳ lädt…', metaBuilt:'gebaut {d}', metaRefreshed:'GitHub-Stand {d}',
     metaLine:'Patch {patch} · Daten {data} · {no} Angebote · {ni} Ressourcen · {fresh}' },
   en:{ modeEffort:'By effort', modeGroup:'By category', repLabel:'My Wikelo reputation:',
-    grpView:'View', grpInv:'Inventory', grpData:'Data', onlyRep:'only reachable rep', showRetired:'show retired', showAcquired:'show acquired',
+    grpView:'View', grpInv:'Inventory', onlyRep:'only reachable rep', showRetired:'show retired', showAcquired:'show acquired',
     offerSearchPh:'Filter offers…',
     btnSave:'💾 Save stock', btnSaveTitle:'Click: save · Right-click: choose new location',
-    btnLoad:'📂 Load stock', btnReset:'clear', priceLabel:'Prices:',
-    priceBoth:'both (star-head + UEX)', priceUex:'UEX only', priceSh:'star-head only',
+    btnLoad:'📂 Load stock', btnReset:'clear',
     btnRefresh:'🔄 Load latest build (GitHub)', btnRefreshTitle:'Load the latest daily build from GitHub (right-click: reset to built-in data)',
     btnChangelog:'🆕 What\'s new?', btnSwap:'Blueprint Planner', btnSwapHandel:'Trade Planner', btnGuides:'Guides overview', clTitle:'What\'s new?', clGh:'Full changelog on GitHub ↗',
     panelTitle:'My resource stock', quickPh:'⚡ Quick entry: e.g. "carinite 50" · Enter',
@@ -730,11 +767,11 @@ const I18N = {
     toastAcq:'marked as acquired – hidden', toastUnacq:'shown again',
     getMissing:'Get missing', complete:'✓ complete', effort:'Effort', repNeed:'needs rep {n}', repRew:'reward +{n} rep',
     haveShort:'have {have}/{need}', offer:'offer', offers:'offers', noRes:'No resource found.', noOffers:'No offers for these filters.',
-    exchange:'Exchange:', priceBuy:'buyable ≈ {p} aUEC/SCU', priceSell:'sell value ≈ {p} aUEC/SCU', avgUex:'UEX avg', avgMarket:'market avg',
+    exchange:'Exchange:', priceBuy:'buyable ≈ {p} aUEC/SCU', priceSell:'sell value ≈ {p} aUEC/SCU', avgMarket:'market avg', moreSell:'{n} sell locations on star-head', priceDate:'as of {d}',
     confirmClear:'Really clear the entire stock?', confirmReset:'Reset to the built-in build data (discard cached refresh)?',
     toastReset:'Reset to build data', toastRefreshed:'Latest build loaded · {n} offers, patch {p}', toastSame:'You already have the latest build.',
     toastRefreshFail:'GitHub unreachable – existing data kept',
-    toastBpFail:'Blueprints (star-head) unreachable', toastPriceFail:'Prices (UEX) unreachable',
+    toastBpFail:'Blueprints (star-head) unreachable',
     toastSaved:'Stock saved', toastLoaded:'Stock loaded: {n} resources',
     toastBadFile:'Invalid file (not a stock JSON)', toastPreload:'Stock preloaded from SC_Wikelo_Bestand.json',
     loading:'⏳ loading…', metaBuilt:'built {d}', metaRefreshed:'GitHub build {d}',
@@ -829,7 +866,7 @@ let DATA = transform(RAW);
 // ---- state ----
 let inv = {};
 let acq = {};   // {mission_name: {reward, ts}} – marked as acquired (by mission_name, stable across refresh)
-let pref = {mode:'aufwand', myRep:0, onlyRep:false, showRetired:false, showAcquired:false, onlyHave:false, priceSrc:'beide', lang:'de'};
+let pref = {mode:'aufwand', myRep:0, onlyRep:false, showRetired:false, showAcquired:false, onlyHave:false, lang:'de'};
 let lsInv = null;
 try{ lsInv = JSON.parse(localStorage.getItem(LS_INV)||'null'); }catch(e){}
 if(lsInv && Object.keys(lsInv).length){ inv = lsInv; }
@@ -847,7 +884,7 @@ document.getElementById('themeBtn').addEventListener('click', ()=>{
 });
 // Tabs on narrow screens: offers first
 scPanels(document.getElementById('wkTabs'),[
-  {key:'off',label:'<span class="fh-de">Angebote</span><span class="fh-en">Offers</span>',els:[document.getElementById('wkOffers'),document.getElementById('grpView'),document.getElementById('grpData')]},
+  {key:'off',label:'<span class="fh-de">Angebote</span><span class="fh-en">Offers</span>',els:[document.getElementById('wkOffers'),document.getElementById('grpView')]},
   {key:'inv',label:'<span class="fh-de">Mein Bestand</span><span class="fh-en">My inventory</span>',els:[document.getElementById('wkSide'),document.getElementById('grpInv')]}],'off');
 
 // Persist the inventory to localStorage (errors ignored, e.g. blocked storage)
@@ -948,9 +985,12 @@ function hintFor(name){
     extra = t('exchange')+' '+opts;
   }
   else if(info.ore && DATA.prices[info.ore]){
-    const p=DATA.prices[info.ore], q=p.src==='uex'?t('avgUex'):t('avgMarket');
-    if(p.buy) extra = t('priceBuy',{p:fmt(p.buy.price)}) + (p.buy.loc?` (${esc(p.buy.loc)})`:` (${q})`);
-    else if(p.sell) extra = t('priceSell',{p:fmt(p.sell.price)}) + (p.sell.loc?` (${esc(p.sell.loc)})`:` (${q})`);
+    // Older builds (UEX, up to 1.6.1) have no place; star-head entries carry place, date and the sell count.
+    const p=DATA.prices[info.ore], q=t('avgMarket');
+    const where=h=>(h.loc?` (${esc(h.loc)}${h.date?', '+esc(t('priceDate',{d:h.date})):''})`:` (${q})`);
+    if(p.buy) extra = t('priceBuy',{p:fmt(p.buy.price)}) + where(p.buy);
+    else if(p.sell) extra = t('priceSell',{p:fmt(p.sell.price)}) + where(p.sell)
+      + (p.n_sell>1?' · '+esc(t('moreSell',{n:p.n_sell})):'');
   }
   return {src:info.src, hint:srcHint(info.src), extra};
 }
@@ -1249,7 +1289,6 @@ const DATA_URL='https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/data.json
 const EP = {
   wikelo:     'https://seeknd.github.io/Wikelo/data/wikelo_data.json',
   blueprints: 'https://api.star-head.de/blueprint',
-  uex:        'https://api.uexcorp.space/2.0/commodities',
 };
 // Fetch a URL without cache and parse JSON; throws on HTTP errors
 async function getJSON(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
@@ -1267,25 +1306,10 @@ async function fetchBlueprints(names){
     if(costs.length) out.push({name:nm, costs}); }
   return out;
 }
-// Ore commodity base names needed by the given ingredients
-function needOreBases(names){ const s=new Set(); for(const n of names){ const o=oreCommodity(n); if(o) s.add(o); } return s; }
-// Fetch UEX ore prices (cheapest buy, best sell) per base; same rules as the Python build
-async function fetchPricesUex(bases){
-  if(!bases.size) return {};
-  const CAP=100000;   // plausibility cap: UEX has placeholders (0 / millions) for some new ores
-  const res=await getJSON(EP.uex), data=(res&&res.data)||res||[], out={};
-  for(const c of data){ const nm=String(c.name||'').trim(), base=nm.replace(/\s*\((Ore|Pure|Raw)\)$/,'').trim();
-    if(!bases.has(base)) continue;
-    const pb=c.price_buy||0, ps=c.price_sell||0, e=out[base]||{buy:null,sell:null,src:'uex'};
-    if(pb>0&&pb<=CAP&&(!e.buy||pb<e.buy.price)) e.buy={price:Math.round(pb),loc:null};
-    if(ps>0&&ps<=CAP&&(!e.sell||ps>e.sell.price)) e.sell={price:Math.round(ps),loc:null};
-    if(e.buy||e.sell) out[base]=e; }
-  return out;
-}
 // Load the latest data.json from GitHub Pages and switch to it, keeping the build's inventory preset
 async function refreshData(){
   // Loads the data last built on GitHub (daily 05:00 UTC). No direct access to
-  // star-head/seeknd/UEX from the browser any more – this spares the community sources.
+  // star-head/seeknd from the browser any more – this spares the community sources.
   const btn=$('#btnRefresh'); if(btn.dataset.busy) return;
   btn.dataset.busy='1'; btn.disabled=true; const label=btn.textContent; btn.textContent=t('loading');
   try{
@@ -1306,7 +1330,6 @@ $('#btnRefresh').addEventListener('contextmenu', e=>{ e.preventDefault();
   if(confirm(t('confirmReset'))){
     try{ localStorage.removeItem(LS_RAW); }catch(e2){} RAW=RAW_BAKED; DATA=transform(RAW); updateMeta(); rerenderAll(); toast(t('toastReset')); }
 });
-$('#priceSrc').addEventListener('change', e=>{ pref.priceSrc=e.target.value; savePref(); });
 
 // Fill the header data line: patch, data date, counts, build or refresh date
 function updateMeta(){
@@ -1334,7 +1357,6 @@ $('#langSeg').addEventListener('click', e=>{
 LANG = pref.lang || 'de';
 applyStaticI18n();
 updateMeta();
-$('#priceSrc').value = pref.priceSrc||'beide';
 $('#myRep').value=pref.myRep||0; $('#onlyRep').checked=!!pref.onlyRep;
 $('#showRetired').checked=!!pref.showRetired; $('#showAcquired').checked=!!pref.showAcquired; $('#onlyHave').checked=!!pref.onlyHave;
 $$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.mode===pref.mode));
@@ -1369,9 +1391,9 @@ def fill_header(html):
         eyebrow=("Wikelo Emporium · Ressourcen", "Wikelo Emporium · Resources"),
         title=("SC Wikelo-Planer", "SC Wikelo Planner"),
         lede=("Welche Wikelo-Angebote kann ich mit meinem Bestand erfüllen, und was fehlt noch? "
-              "Daten von star-head.de und UEX – im Spiel gegenprüfen.",
+              "Daten von seeknd und star-head.de – im Spiel gegenprüfen.",
               "Which Wikelo offers can I fulfil with my inventory, and what is still missing? "
-              "Data from star-head.de and UEX – verify in game."),
+              "Data from seeknd and star-head.de – verify in game."),
         version=VERSION, refresh=refresh, data='<span id="meta"></span>',
         lang=kz.lang_seg("langSeg"))
     html = html.replace("<!--FH_HEADER-->", head).replace("<!--FH_FONTS-->", sd.FONTS)
@@ -1394,7 +1416,7 @@ def main():
     html = fill_header(html)
     OUTHTML.write_text(html, encoding="utf-8")
     # data.json: the same snapshot without the personal inventory. The app's "load latest"
-    # button fetches this file from GitHub Pages instead of star-head/seeknd/UEX.
+    # button fetches this file from GitHub Pages instead of star-head/seeknd.
     pub = {k: v for k, v in raw.items() if k not in ("saved_inv", "saved_acq")}
     OUTJSON.write_text(json.dumps(pub, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print("gespeichert:", OUTJSON)
