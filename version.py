@@ -1,2 +1,2 @@
 """Zentrale Versionsnummer des StarCitizen-Wikelo-Planers (SemVer)."""
-VERSION = "1.4.1"
+VERSION = "1.5.0"

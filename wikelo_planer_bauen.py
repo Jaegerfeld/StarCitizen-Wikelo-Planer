@@ -32,6 +32,8 @@ import sys
 import time
 import urllib.request
 
+import kopfzeile as kz
+
 HOST     = "seeknd.github.io"
 BASEPATH = "/Wikelo/"
 OUTDIR   = pathlib.Path(__file__).resolve().parent   # Skript-Ordner (laeuft auf jedem PC / in CI)
@@ -275,8 +277,11 @@ HTML_TEMPLATE = r"""<!doctype html>
 html,body{margin:0;background:var(--ink);color:var(--txt);
   font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:14px}
 a{color:var(--gold)}
-header{background:linear-gradient(180deg,var(--navy),var(--navy2));padding:10px 16px;
-  border-bottom:2px solid var(--gold2);position:sticky;top:0;z-index:20}
+.wtools{background:linear-gradient(180deg,var(--navy),var(--navy2));padding:10px 16px;
+  border-bottom:2px solid var(--gold2);border-top:1px solid var(--line);position:sticky;top:0;z-index:20}
+.wtools .controls{margin-top:0}
+.hazard{height:5px;background:repeating-linear-gradient(45deg,var(--gold2) 0 14px,transparent 14px 28px);opacity:.9}
+.fhwrap{padding:0 16px}
 .hrow{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
 h1{font-size:18px;margin:0;letter-spacing:.3px}
 h1 .sub{color:var(--gold);font-weight:600}
@@ -409,20 +414,16 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
   .side{position:static;max-height:none}
   .side .scroll{max-height:52vh}
 }
+/*FH_CSS*/
 </style>
+<!--FH_FONTS-->
 </head>
 <body>
-<header>
-  <div class="hrow">
-    <h1>SC <span class="sub">Wikelo</span> Ressourcen-Planer</h1>
-    <span class="meta" id="meta"></span>
-    <span style="flex:1 1 auto"></span>
-    <a class="btn" href="https://jaegerfeld.github.io/StarCitizen-Bauplan-Planer/" target="_blank" rel="noopener" style="text-decoration:none" title="Zum Bauplan-Planer wechseln">🔀 <span data-i18n="btnSwap">Bauplan-Planer</span></a>
-    <a class="btn" href="https://jaegerfeld.github.io/StarCitizen-Handels-Planer/" target="_blank" rel="noopener" style="text-decoration:none" title="Zum Handels-Planer wechseln">🔀 <span data-i18n="btnSwapHandel">Handels-Planer</span></a>
-    <a class="btn" href="https://jaegerfeld.github.io/sc-guides/" target="_blank" rel="noopener" style="text-decoration:none" title="Zur Übersicht aller Guides und Planer">📚 <span data-i18n="btnGuides">Guides-Übersicht</span></a>
-    <button class="btn" id="btnChangelog" data-i18n="btnChangelog">🆕 Was ist neu?</button>
-    <div class="seg" id="langSeg"><button data-lang="de">DE</button><button data-lang="en">EN</button></div>
-  </div>
+<div class="hazard"></div>
+<div class="fhwrap">
+<!--FH_HEADER-->
+</div>
+<div class="wtools">
   <div class="controls">
     <div class="seg" id="modeSeg">
       <button data-mode="aufwand" class="on" data-i18n="modeEffort">Nach Aufwand</button>
@@ -447,9 +448,8 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
         <option value="starhead" data-i18n="priceSh">nur star-head</option>
       </select>
     </label>
-    <button class="btn" id="btnRefresh" data-i18n="btnRefresh" data-i18n-title="btnRefreshTitle" title="Neuesten täglich gebauten Datenstand von GitHub laden">🔄 Neuesten Stand laden (GitHub)lisieren</button>
   </div>
-</header>
+</div>
 
 <main>
   <aside class="panel side">
@@ -488,16 +488,9 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
 
 <div class="toast" id="toast"></div>
 
-<div class="modal" id="clModal">
-  <div class="modal-box">
-    <div class="modal-head"><b data-i18n="clTitle">Was ist neu?</b><button class="btn" id="clClose" aria-label="close">✕</button></div>
-    <div class="modal-body" id="clBody"></div>
-    <div class="modal-foot"><a id="clGh" href="https://github.com/Jaegerfeld/StarCitizen-Wikelo-Planer/blob/main/CHANGELOG.md" target="_blank" rel="noopener" data-i18n="clGh">Vollständiges Changelog auf GitHub ↗</a></div>
-  </div>
-</div>
+<!--FH_DIALOG-->
 
 <script id="wikelo-raw" type="application/json">/*__RAW__*/</script>
-<script id="changelog-md" type="application/json">/*__CHANGELOG__*/</script>
 <script>
 const LS_INV = 'sc_wikelo_inv_v1', LS_PREF = 'sc_wikelo_pref_v1', LS_RAW = 'sc_wikelo_raw_v2';
 const LS_ACQ = 'sc_wikelo_acq_v1';   // als erworben markierte Angebote (Schluessel = mission_name, stabil)
@@ -556,7 +549,7 @@ const I18N = {
     toastSaved:'Bestand gespeichert', toastLoaded:'Bestand geladen: {n} Ressourcen',
     toastBadFile:'Ungültige Datei (kein Bestand-JSON)', toastPreload:'Bestand aus SC_Wikelo_Bestand.json vorgeladen',
     loading:'⏳ lädt…', metaBuilt:'gebaut {d}', metaRefreshed:'GitHub-Stand {d}',
-    metaLine:'v{v} · Patch {patch} · Daten {data} · {no} Angebote · {ni} Ressourcen · {fresh}' },
+    metaLine:'Patch {patch} · Daten {data} · {no} Angebote · {ni} Ressourcen · {fresh}' },
   en:{ modeEffort:'By effort', modeGroup:'By category', repLabel:'My Wikelo reputation:',
     onlyRep:'only reachable rep', showRetired:'show retired', showAcquired:'show acquired',
     offerSearchPh:'Filter offers…',
@@ -587,7 +580,7 @@ const I18N = {
     toastSaved:'Stock saved', toastLoaded:'Stock loaded: {n} resources',
     toastBadFile:'Invalid file (not a stock JSON)', toastPreload:'Stock preloaded from SC_Wikelo_Bestand.json',
     loading:'⏳ loading…', metaBuilt:'built {d}', metaRefreshed:'GitHub build {d}',
-    metaLine:'v{v} · patch {patch} · data {data} · {no} offers · {ni} resources · {fresh}' }
+    metaLine:'patch {patch} · data {data} · {no} offers · {ni} resources · {fresh}' }
 };
 function t(k,p){ let s=(I18N[LANG]&&I18N[LANG][k]!=null)?I18N[LANG][k]:(I18N.de[k]!=null?I18N.de[k]:k);
   if(p) for(const key in p) s=s.split('{'+key+'}').join(p[key]); return s; }
@@ -1117,39 +1110,6 @@ $('#langSeg').addEventListener('click', e=>{
   applyStaticI18n(); updateMeta(); rerenderAll();
 });
 
-// ---- Changelog-Modal (offline, aus eingebackenem CHANGELOG.md) ----
-let CHANGELOG_MD='';
-try{ CHANGELOG_MD = JSON.parse(document.getElementById('changelog-md').textContent)||''; }catch(e){}
-function clInline(s){   // minimales Markdown-Inline: **fett**, `code`, [text](url)
-  let out=esc(s);
-  out=out.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  out=out.replace(/`([^`]+)`/g,'<code>$1</code>');
-  out=out.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,(m,txt,url)=>`<a href="${url}" target="_blank" rel="noopener">${txt}</a>`);
-  return out;
-}
-function renderChangelogHtml(md){
-  const lines=String(md).split(/\r?\n/); let html='', inList=false, m;
-  const close=()=>{ if(inList){ html+='</ul>'; inList=false; } };
-  for(const raw of lines){
-    const line=raw.replace(/\s+$/,'');
-    if(/^\[[^\]]+\]:\s*https?:/.test(line)) continue;   // Referenz-Link-Definitionen weglassen
-    if(!line.trim()){ close(); continue; }
-    if(/^#\s+/.test(line)){ close(); continue; }        // Top-Ueberschrift "Changelog" weglassen
-    else if(m=line.match(/^##\s+(.*)/)){ close(); html+=`<h3>${clInline(m[1])}</h3>`; }
-    else if(m=line.match(/^###\s+(.*)/)){ close(); html+=`<h4>${clInline(m[1])}</h4>`; }
-    else if(m=line.match(/^[-*]\s+(.*)/)){ if(!inList){ html+='<ul>'; inList=true; } html+=`<li>${clInline(m[1])}</li>`; }
-    else if(inList && /^\s+\S/.test(raw)){ html=html.replace(/<\/li>$/,' '+clInline(line.trim())+'</li>'); }  // Fortsetzung der Zeile
-    else { close(); html+=`<p>${clInline(line)}</p>`; }
-  }
-  close();
-  return html;
-}
-function openChangelog(){ $('#clBody').innerHTML = renderChangelogHtml(CHANGELOG_MD) || '<p>—</p>'; $('#clModal').classList.add('open'); }
-function closeChangelog(){ $('#clModal').classList.remove('open'); }
-$('#btnChangelog').addEventListener('click', openChangelog);
-$('#clClose').addEventListener('click', closeChangelog);
-$('#clModal').addEventListener('click', e=>{ if(e.target.id==='clModal') closeChangelog(); });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeChangelog(); });
 
 // ---- init ----
 LANG = pref.lang || 'de';
@@ -1161,10 +1121,34 @@ $('#showRetired').checked=!!pref.showRetired; $('#showAcquired').checked=!!pref.
 $$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.mode===pref.mode));
 if(!lsInv && Object.keys(inv).length) toast(t('toastPreload'));
 rerenderAll();
+/*FH_JS*/
 </script>
 </body>
 </html>
 """
+
+
+
+def fill_header(html):
+    """Gemeinsame Kopfzeile, „Was ist neu?“-Dialog und Changelog einsetzen (kopfzeile.py).
+    Wikelo hat kein helles Design, daher ohne Hell/Dunkel-Knopf."""
+    refresh = ('<button class="btn fh-btn" id="btnRefresh" type="button" data-i18n="btnRefresh" '
+               'data-i18n-title="btnRefreshTitle" title="Neuesten täglich gebauten Datenstand von GitHub laden">'
+               '🔄 Neuesten Stand laden (GitHub)</button>')
+    head = kz.header_html(
+        "wikelo",
+        eyebrow=("Wikelo Emporium · Ressourcen", "Wikelo Emporium · Resources"),
+        title=("SC Wikelo-Planer", "SC Wikelo Planner"),
+        lede=("Welche Wikelo-Angebote kann ich mit meinem Bestand erfüllen, und was fehlt noch? "
+              "Daten von star-head.de und UEX – im Spiel gegenprüfen.",
+              "Which Wikelo offers can I fulfil with my inventory, and what is still missing? "
+              "Data from star-head.de and UEX – verify in game."),
+        version=VERSION, refresh=refresh, data='<span id="meta"></span>',
+        theme=False, lang=kz.lang_seg("langSeg"))
+    html = html.replace("<!--FH_HEADER-->", head).replace("<!--FH_FONTS-->", kz.FONTS)
+    html = html.replace("/*FH_CSS*/", kz.CSS).replace("/*FH_JS*/", kz.JS)
+    return html.replace("<!--FH_DIALOG-->", kz.dialog_html("wikelo", VERSION) + "\n"
+                        + kz.changelog_script(OUTDIR / "CHANGELOG.md"))
 
 
 def main():
@@ -1172,13 +1156,7 @@ def main():
     payload = json.dumps(raw, ensure_ascii=False, separators=(",", ":"))
     payload = payload.replace("</", "<\\/")
     html = HTML_TEMPLATE.replace("/*__RAW__*/", payload)
-    # CHANGELOG.md fuer den In-App-"Was ist neu?"-Dialog einbacken (offline, kein externer Abruf).
-    changelog = ""
-    clpath = OUTDIR / "CHANGELOG.md"
-    if clpath.exists():
-        changelog = clpath.read_text(encoding="utf-8")
-    cl_payload = json.dumps(changelog, ensure_ascii=False).replace("</", "<\\/")
-    html = html.replace("/*__CHANGELOG__*/", cl_payload)
+    html = fill_header(html)
     OUTHTML.write_text(html, encoding="utf-8")
     # data.json: derselbe Stand ohne den persoenlichen Bestand. Der Knopf "Neuesten
     # Stand laden" in der App holt diese Datei von GitHub Pages statt star-head/seeknd/UEX.
