@@ -4,6 +4,11 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.7.1] – 2026-11-22
+
+### Behoben
+- Mengen-Hinweis stimmt jetzt mit der Bedienung überein: Ein einfacher Klick auf eine Zutatenzeile schaltet zwischen 0 und 1 um (bisher hieß es „Klick +1“); +1 gibt es über den Knopf **+**. Auch im README berichtigt.
+
 ## [1.7.0] – 2026-11-21
 
 ### Hinzugefügt
