@@ -20,7 +20,7 @@ is **bilingual (English/German)**, switchable in the header.
 
 - **Enter your stock** — all ingredients on the left, grouped by sourcing (currency / mining /
   creature loot / contested zone / craftable …). Set amounts via **+/−**, **mouse wheel**,
-  **right-click**, or **modifier click** (click +1 · Shift +10 · Ctrl +50 · Alt +100).
+  **right-click**, or **modifier click** (a plain row click toggles 0↔1, Shift +10 · Ctrl +50 · Alt +100; the +/− buttons step by 1).
 - **Quick entry** — command bar: `carinite 50` sets, `name +10` adds, with autocomplete.
 - **Offers ranked by effort** — *Available now → 1 missing → 2 missing → 3+*. Or group by category.
 - **Effort stars (1–5)** — amount-weighted: sum of *missing amount × sourcing cost per source*,

@@ -20,7 +20,7 @@ Die Oberfläche ist **zweisprachig (Deutsch/Englisch)**, umschaltbar im Header.
 
 - **Bestand eintragen** – links alle Zutaten, gruppiert nach Beschaffungsquelle (Währung / Mining /
   Creature-Loot / Contested Zone / craftbar …). Menge per **+/−**, **Mausrad**, **Rechtsklick**
-  oder **Modifier-Klick** (Klick +1 · Shift +10 · Strg +50 · Alt +100).
+  oder **Modifier-Klick** (Klick auf die Zeile schaltet 0↔1, Shift +10 · Strg +50 · Alt +100; die Knöpfe +/− zählen je 1).
 - **Schnell-Eingabe** – Kommando-Leiste: `carinite 50` setzt, `name +10` addiert, mit Autovervollständigung.
 - **Angebote gestaffelt nach Aufwand** – *Sofort verfügbar → 1 fehlt → 2 fehlen → 3+*. Oder nach Artikelgruppe.
 - **Aufwand-Sterne (1–5)** – mengengewichtet: Summe aus *fehlender Menge × Beschaffungskosten je Quelle*,

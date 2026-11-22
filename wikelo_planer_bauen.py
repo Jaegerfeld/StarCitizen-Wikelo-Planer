@@ -659,7 +659,7 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
     <div class="qhint" data-i18n="quickHint">„name zahl" setzt · „name +zahl" addiert · nur „name" = +1 · ↑↓ wählen, Enter übernehmen</div>
     <div style="padding:8px 8px 0"><input type="text" id="resSearch" data-i18n-ph="resSearchPh" placeholder="Ressource suchen…" style="width:100%"></div>
     <div style="padding:5px 12px 0;color:var(--w-dim);font-size:11px;line-height:1.4">
-      <span data-i18n="qtyHint">Menge: Klick +1 · Shift +10 · Strg +50 · Alt +100</span>
+      <span data-i18n="qtyHint">Menge: Klick auf die Zeile 0↔1 · Shift +10 · Strg +50 · Alt +100 · Knöpfe +/− je 1</span>
       <span style="color:var(--w-dim)" data-i18n="qtyHint2">(Mausrad = hoch/runter, Rechtsklick = minus, gleiche Modifier)</span>
     </div>
     <label style="padding:6px 12px;color:var(--w-dim);font-size:12px;display:flex;gap:6px;align-items:center">
@@ -675,7 +675,7 @@ main{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-it
       <span><i class="sw" style="background:var(--w-band2)"></i> <span data-i18n="lg2">2 fehlen</span></span>
       <span><i class="sw" style="background:var(--w-band3)"></i> <span data-i18n="lg3">3+ fehlen</span></span>
       <span>· <span data-i18n="lgEffort">Aufwand = Gesamtaufwand des Fehlenden (Menge × Beschaffung)</span></span>
-      <span style="margin-left:auto" data-i18n="tip">Menge links: Klick +1 · Shift +10 · Strg +50 · Alt +100 (Mausrad/Rechtsklick ebenso)</span>
+      <span style="margin-left:auto" data-i18n="tip">Menge links: Klick 0↔1 · Shift +10 · Strg +50 · Alt +100 (Mausrad/Rechtsklick in denselben Schritten)</span>
     </div>
     <div id="offers" style="margin-top:12px"></div>
   </section>
@@ -726,10 +726,10 @@ const I18N = {
     panelTitle:'Mein Ressourcen-Bestand', quickPh:'⚡ Schnell-Eingabe: z. B. „carinite 50" · Enter',
     quickHint:'„name zahl" setzt · „name +zahl" addiert · nur „name" = +1 · ↑↓ wählen, Enter übernehmen',
     resSearchPh:'Ressource suchen…', onlyHave:'nur „hab ich" zeigen',
-    qtyHint:'Menge: Klick +1 · Shift +10 · Strg +50 · Alt +100', qtyHint2:'(Mausrad = hoch/runter, Rechtsklick = minus, gleiche Modifier)',
+    qtyHint:'Menge: Klick auf die Zeile 0↔1 · Shift +10 · Strg +50 · Alt +100 · Knöpfe +/− je 1', qtyHint2:'(Mausrad = hoch/runter, Rechtsklick = minus, gleiche Modifier)',
     lgNow:'sofort', lg1:'1 fehlt', lg2:'2 fehlen', lg3:'3+ fehlen',
     lgEffort:'Aufwand = Gesamtaufwand des Fehlenden (Menge × Beschaffung)',
-    tip:'Menge links: Klick +1 · Shift +10 · Strg +50 · Alt +100 (Mausrad/Rechtsklick ebenso)',
+    tip:'Menge links: Klick 0↔1 · Shift +10 · Strg +50 · Alt +100 (Mausrad/Rechtsklick in denselben Schritten)',
     marked:'{n} markiert', inOffers:'in {n} Angebot', inOffersPl:'in {n} Angeboten', craftTag:'craftbar', oreTag:'Erz',
     acqBtnMark:'✓ erworben', acqBtnUnmark:'↩ zurück',
     acqBtnMarkTitle:'Als erworben markieren und ausblenden', acqBtnUnmarkTitle:'Markierung entfernen (wieder einblenden)',
@@ -756,10 +756,10 @@ const I18N = {
     panelTitle:'My resource stock', quickPh:'⚡ Quick entry: e.g. "carinite 50" · Enter',
     quickHint:'"name number" sets · "name +number" adds · just "name" = +1 · ↑↓ to choose, Enter to apply',
     resSearchPh:'Search resource…', onlyHave:'show only "have"',
-    qtyHint:'Amount: click +1 · Shift +10 · Ctrl +50 · Alt +100', qtyHint2:'(wheel = up/down, right-click = minus, same modifiers)',
+    qtyHint:'Amount: click the row 0↔1 · Shift +10 · Ctrl +50 · Alt +100 · +/− buttons step 1', qtyHint2:'(wheel = up/down, right-click = minus, same modifiers)',
     lgNow:'now', lg1:'1 missing', lg2:'2 missing', lg3:'3+ missing',
     lgEffort:'Effort = total effort for the missing (amount × sourcing)',
-    tip:'Amount on the left: click +1 · Shift +10 · Ctrl +50 · Alt +100 (wheel/right-click too)',
+    tip:'Amount on the left: click 0↔1 · Shift +10 · Ctrl +50 · Alt +100 (wheel/right-click in the same steps)',
     marked:'{n} marked', inOffers:'in {n} offer', inOffersPl:'in {n} offers', craftTag:'craftable', oreTag:'ore',
     acqBtnMark:'✓ acquired', acqBtnUnmark:'↩ undo',
     acqBtnMarkTitle:'Mark as acquired and hide', acqBtnUnmarkTitle:'Remove mark (show again)',
@@ -1150,7 +1150,7 @@ function applyQuick(i){
   $('#quickAdd').value=''; quickIndex=0; renderQuick(); $('#quickAdd').focus();
 }
 
-// ---- Step size by modifier: click +1 · Shift +10 · Ctrl +50 · Alt +100 ----
+// ---- Step size by modifier: +1 · Shift +10 · Ctrl +50 · Alt +100 (a plain row click toggles 0<->1) ----
 // Step size of a mouse event from its modifier keys
 function stepOf(e){ if(e.altKey) return 100; if(e.ctrlKey||e.metaKey) return 50; if(e.shiftKey) return 10; return 1; }
 
