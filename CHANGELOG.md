@@ -4,6 +4,12 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.7.2] – 2026-11-26
+
+### Geändert
+- **Die Adresse dieses Tools leitet ins SC Cockpit weiter.** Der Wikelo-Planer ist ins [SC Cockpit](https://jaegerfeld.github.io/sc-cockpit/) eingezogen: Werkstatt (Wikelo). Wer https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/ öffnet, landet dort im passenden Bereich; online sind deine Daten dieselben, weil Cockpit und Tool denselben Browser-Speicher nutzen.
+- Diese Seite selbst bleibt erreichbar: https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/app.html. Am Tool hat sich nichts geändert.
+
 ## [1.7.1] – 2026-11-22
 
 ### Behoben
