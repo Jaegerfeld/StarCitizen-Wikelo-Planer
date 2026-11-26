@@ -6,7 +6,7 @@ A resource planner for **Wikelo's Emporium** in *Star Citizen*: enter your resou
 instantly see **which Wikelo rewards you can get** — the ones available right now on top, the
 rest **ranked by how much effort** the missing ingredients take.
 
-**▶ Use online:** https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/
+**▶ Use online:** in the SC Cockpit: https://jaegerfeld.github.io/sc-cockpit/#/werkstatt/wikelo · single page: https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/app.html
 **▶ Use offline:** download [`SC_Wikelo_Planer.html`](SC_Wikelo_Planer.html) and open it (double-click).
 
 The whole app is **one self-contained HTML file** — offline, no install, no server. The interface

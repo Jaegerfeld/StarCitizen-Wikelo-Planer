@@ -6,7 +6,7 @@ Ein Ressourcen-Planer für **Wikelo's Emporium** in *Star Citizen*: Du trägst d
 Ressourcen-Bestand ein und siehst sofort, **welche Wikelo-Angebote du bekommst** –
 zuoberst die sofort verfügbaren, darunter nach **Beschaffungsaufwand gestaffelt**.
 
-**▶ Online nutzen:** https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/
+**▶ Online nutzen:** im SC Cockpit: https://jaegerfeld.github.io/sc-cockpit/#/werkstatt/wikelo · Einzelseite: https://jaegerfeld.github.io/StarCitizen-Wikelo-Planer/app.html
 **▶ Offline nutzen:** [`SC_Wikelo_Planer.html`](SC_Wikelo_Planer.html) herunterladen und per Doppelklick öffnen.
 
 Die ganze App ist **eine eigenständige HTML-Datei** – offline, kein Server, keine Installation.
